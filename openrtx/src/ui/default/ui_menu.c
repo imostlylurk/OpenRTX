@@ -482,6 +482,51 @@ int _ui_getFMValueName(char* buf, uint8_t max_len, uint8_t index)
     return 0;
 }
 
+#if defined(CONFIG_P25)
+int _ui_getP25EntryName(char *buf, uint8_t max_len, uint8_t index)
+{
+    if(index >= p25_num) return -1;
+    snprintf(buf, max_len, "%s", p25_items[index]);
+    return 0;
+}
+
+int _ui_getP25ValueName(char *buf, uint8_t max_len, uint8_t index)
+{
+    if(index >= p25_num) return -1;
+
+    switch(index)
+    {
+        case M_SRCID:
+            snprintf(buf, max_len, "%d", (int)last_state.settings.p25_srcId);
+            return 0;
+        case M_DSTID:
+            snprintf(buf, max_len, "%d", (int)last_state.settings.p25_dstId);
+            return 0;
+        case M_NAC:
+            snprintf(buf, max_len, "%d", (int)last_state.settings.p25_nac);
+            return 0;
+        case M_P25RXLEVEL:
+            snprintf(buf, max_len, "%d", (int)last_state.settings.p25_rx_level);
+            return 0;
+        case M_P25TXLEVEL:
+            snprintf(buf, max_len, "%d", (int)last_state.settings.p25_tx_level);
+            return 0;
+        case M_RXINVERT:
+            snprintf(buf, max_len, "%s", (last_state.settings.p25_rx_invert) ?
+            		                                          currentLanguage->on :
+															  currentLanguage->off);
+            return 0;
+        case M_TXINVERT:
+            snprintf(buf, max_len, "%s", (last_state.settings.p25_tx_invert) ?
+            		                                          currentLanguage->on :
+															  currentLanguage->off);
+            return 0;
+    }
+
+    return 0;
+}
+#endif
+
 int _ui_getAccessibilityEntryName(char *buf, uint8_t max_len, uint8_t index)
 {
     if(index >= settings_accessibility_num) return -1;
@@ -1055,6 +1100,56 @@ void _ui_drawSettingsFM(ui_state_t* ui_state)
     _ui_drawMenuListValue(ui_state, ui_state->menu_selected, _ui_getFMEntryName,
                           _ui_getFMValueName);
 }
+
+#if defined(CONFIG_P25)
+void _ui_drawSettingsP25(ui_state_t* ui_state)
+{
+    gfx_clearScreen();
+    gfx_print(layout.top_pos, layout.top_font, TEXT_ALIGN_CENTER,
+              color_white, "P25 Settings");
+
+    if(ui_state->edit_srcid)
+    {
+        gfx_printLine(1, 4, layout.top_h, CONFIG_SCREEN_HEIGHT - layout.bottom_h,
+                      layout.horizontal_pad, layout.menu_font,
+                      TEXT_ALIGN_LEFT, color_white, "DMR Id:");
+
+        // Print P25 Source Id being typed
+        gfx_printLine(1, 1, layout.top_h, CONFIG_SCREEN_HEIGHT - layout.bottom_h,
+                      layout.horizontal_pad, layout.input_font,
+                      TEXT_ALIGN_CENTER, color_white, ui_state->new_callsign);
+    }
+    else
+        if(ui_state->edit_dstid)
+        {
+            gfx_printLine(1, 4, layout.top_h, CONFIG_SCREEN_HEIGHT - layout.bottom_h,
+                          layout.horizontal_pad, layout.menu_font,
+                          TEXT_ALIGN_LEFT, color_white, "Dest Id:");
+
+            // Print P25 Destination Id being typed
+            gfx_printLine(1, 1, layout.top_h, CONFIG_SCREEN_HEIGHT - layout.bottom_h,
+                          layout.horizontal_pad, layout.input_font,
+                          TEXT_ALIGN_CENTER, color_white, ui_state->new_callsign);
+        }
+        else
+            if(ui_state->edit_nac)
+            {
+                gfx_printLine(1, 4, layout.top_h, CONFIG_SCREEN_HEIGHT - layout.bottom_h,
+                              layout.horizontal_pad, layout.menu_font,
+                              TEXT_ALIGN_LEFT, color_white, "NAC:");
+
+                // Print P25 NAC Id being typed
+                gfx_printLine(1, 1, layout.top_h, CONFIG_SCREEN_HEIGHT - layout.bottom_h,
+                              layout.horizontal_pad, layout.input_font,
+                              TEXT_ALIGN_CENTER, color_white, ui_state->new_callsign);
+            }
+            else
+            {
+                _ui_drawMenuListValue(ui_state, ui_state->menu_selected, _ui_getP25EntryName,
+                                      _ui_getP25ValueName);
+            }
+}
+#endif
 
 void _ui_drawSettingsAccessibility(ui_state_t* ui_state)
 {

@@ -10,6 +10,9 @@
 #include "rtx/rtx.h"
 #include "rtx/OpMode_FM.hpp"
 #include "rtx/OpMode_M17.hpp"
+#if defined(CONFIG_P25)
+#include "rtx/OpMode_P25.hpp"
+#endif
 
 static pthread_mutex_t   *cfgMutex;     // Mutex for incoming config messages
 static const rtxStatus_t *newCnf;       // Pointer for incoming config messages
@@ -19,11 +22,15 @@ static bool               reinitFilter; // Flag for RSSI filter re-initialisatio
 
 static OpMode  *currMode;               // Pointer to currently active opMode handler
 static OpMode     noMode;               // Empty opMode handler for opmode::NONE
+#ifndef USE_DYNAMIC_ALLOC
 static OpMode_FM  fmMode;               // FM mode handler
 #ifdef CONFIG_M17
 static OpMode_M17 m17Mode;              // M17 mode handler
 #endif
-
+#ifdef CONFIG_P25
+static OpMode_P25   p25Mode;           // P25 mode handler
+#endif
+#endif
 
 void rtx_init(pthread_mutex_t *m)
 {
@@ -53,6 +60,10 @@ void rtx_init(pthread_mutex_t *m)
     rtxStatus.M17_link[0]   = '\0';
     rtxStatus.M17_refl[0]   = '\0';
     rtxStatus.M17_meta_text[0] = '\0';
+#if defined(CONFIG_P25)
+    rtxStatus.P25_SrcId        = 0;
+    rtxStatus.P25_DstId        = 0;
+#endif
     currMode = &noMode;
 
     /*
@@ -122,7 +133,6 @@ void rtx_task()
             rtxStatus.txToneEn = 0;
             rtxStatus.rxToneEn = 0;
         }
-
         /*
          * Handle change of opMode:
          * - deactivate current opMode and switch operating status to "OFF";
@@ -141,10 +151,41 @@ void rtx_task()
             switch(rtxStatus.opMode)
             {
                 case OPMODE_NONE: currMode = &noMode;  break;
-                case OPMODE_FM:   currMode = &fmMode;  break;
-                #ifdef CONFIG_M17
-                case OPMODE_M17:  currMode = &m17Mode; break;
-                #endif
+#ifdef USE_DYNAMIC_ALLOC
+                case OPMODE_FM:
+                    if(currMode->getID() != OPMODE_NONE)
+                        delete currMode;
+            currMode = new OpMode_FM();
+            break;
+#ifdef CONFIG_M17
+                case OPMODE_M17:
+                    if(currMode->getID() != OPMODE_NONE)
+                        delete currMode;
+            currMode = new OpMode_M17();
+            break;
+#endif
+#ifdef CONFIG_P25
+                case OPMODE_P25:
+                    if(currMode->getID() != OPMODE_NONE)
+                        delete currMode;
+            currMode = new OpMode_P25();
+            break;
+#endif
+#else
+                case OPMODE_FM:
+                    currMode = &fmMode;
+                    break;
+#ifdef CONFIG_M17
+                case OPMODE_M17:
+                    currMode = &m17Mode;
+                    break;
+#endif
+#ifdef CONFIG_P25
+                case OPMODE_P25:
+                    currMode = &p25Mode;
+                    break;
+#endif
+#endif
                 default:   currMode = &noMode;
             }
 
@@ -214,4 +255,23 @@ rssi_t rtx_getRssi()
 bool rtx_rxSquelchOpen()
 {
     return currMode->rxSquelchOpen();
+}
+
+bool rtx_getSMSMessage(uint8_t mesg_num, char *sender, char *message)
+{
+    // only M17 has SMS capability
+    if(currMode->getID() == OPMODE_M17)
+    {
+        return currMode->getSMSMessage(mesg_num, sender, message);
+    }
+    return false;
+}
+
+void rtx_delSMSMessage(uint8_t mesg_num)
+{
+    // only M17 has SMS capability
+    if(currMode->getID() == OPMODE_M17)
+    {
+        currMode->delSMSMessage(mesg_num);
+    }
 }

@@ -213,6 +213,91 @@ void _ui_drawModeInfo(ui_state_t* ui_state)
             }
             break;
         }
+#if defined(CONFIG_P25)
+        case OPMODE_P25:
+        {
+#if !defined(PLATFORM_CS7000P) && !defined(PLATFORM_MD3x0) && !defined(PLATFORM_MOD17)
+            extern bool host_found;
+#endif
+            rtxStatus_t rtxStatus = rtx_getCurrentStatus();
+
+            if(rtxStatus.lsfOk)
+            {
+                gfx_drawSymbol(layout.line2_pos, layout.line2_symbol_size, TEXT_ALIGN_LEFT,
+                               color_white, SYMBOL_CALL_RECEIVED);
+                gfx_print(layout.line2_pos, layout.line2_font, TEXT_ALIGN_CENTER,
+                          color_white, "%d", rtxStatus.P25_DstId);
+                gfx_drawSymbol(layout.line1_pos, layout.line1_symbol_size, TEXT_ALIGN_LEFT,
+                               color_white, SYMBOL_CALL_MADE);
+                gfx_print(layout.line1_pos, layout.line2_font, TEXT_ALIGN_CENTER,
+                          color_white, "%d", rtxStatus.P25_SrcId);
+#ifdef PLATFORM_CS7000P
+                gfx_print(layout.top_pos, layout.top_font, TEXT_ALIGN_CENTER,
+                          yellow_fab413, "%s", "P25");
+#endif
+#ifdef PLATFORM_MD3x0
+                gfx_print(layout.top_pos, layout.top_font, TEXT_ALIGN_LEFT,
+                          yellow_fab413, "%s", "P25");
+#endif
+            }
+            else
+            {
+                char src[16];
+                char last[13];
+
+                if(ui_state->edit_srcid)
+                {
+                    sprintf(src, "%d", (int)last_state.settings.p25_srcId);
+                }
+                else
+                {
+                    if(last_state.settings.p25_srcId == 0)
+                        strcpy(src, "--");
+                    else
+#if !defined(PLATFORM_CS7000P) && !defined(PLATFORM_MD3x0)
+                        if(host_found)
+#endif
+                            sprintf(src, "%d", (int)last_state.settings.p25_srcId);
+                }
+#if !defined(PLATFORM_CS7000P) && !defined(PLATFORM_MD3x0)
+                if (host_found)
+                {
+#endif
+                	if(rtxStatus.P25_DstId == 0)
+                    {
+                        strcpy(last, "LAST");
+                    }
+                    else
+                        sprintf(last, "%d", (int)rtxStatus.P25_DstId);
+#if !defined(PLATFORM_CS7000P) && !defined(PLATFORM_MD3x0)
+                }
+                else
+                {
+                    strcpy(src, "Waiting on host");
+                    strcpy(last, "Receive Only");
+                }
+#endif
+                // Print P25 Source ID
+                gfx_print(layout.line1_pos, layout.line1_font, TEXT_ALIGN_CENTER,
+                          color_white, src);
+                // Print P25 Destination ID on line 2
+                gfx_print(layout.line2_pos, layout.line2_font, TEXT_ALIGN_CENTER,
+                          color_white, last);
+
+#ifdef PLATFORM_CS7000P
+                gfx_print(layout.top_pos, layout.top_font, TEXT_ALIGN_CENTER,
+                          yellow_fab413, "%s", "P25");
+#endif
+#ifdef PLATFORM_MD3x0
+                gfx_print(layout.top_pos, layout.top_font, TEXT_ALIGN_LEFT,
+                          yellow_fab413, "%s", "P25");
+#endif
+                break;
+            }
+            break;
+        }
+#endif
+
         #endif
     }
 }
