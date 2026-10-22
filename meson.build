@@ -1263,6 +1263,14 @@ linux_inputStream_test = executable('linux_inputStream_test',
                                     sources : unit_test_src + ['tests/unit/linux_inputStream_test.cpp'],
                                     kwargs  : unit_test_opts)
 
+p25_loopback_opts = unit_test_opts + {
+                       'cpp_args': linux_cpp_args + ['-DP25_ASSETS_DIR="' + meson.project_source_root() / 'tests/unit/assets' + '"'],
+                     }
+
+p25_loopback_test = executable('p25_loopback_test',
+                               sources : unit_test_src + ['tests/unit/P25_loopback.cpp'],
+                               kwargs  : p25_loopback_opts)
+
 minmea_conversion_test = executable('minmea_conversion_test',
                                      sources : unit_test_src + ['tests/unit/convert_minmea_coord.cpp'],
                                      kwargs  : unit_test_opts)
@@ -1310,6 +1318,7 @@ test('M17 Demodulator Test',  m17_demodulator_test)
 test('M17 RRC Test',          m17_rrc_test)
 test('M17 Callsign Unit Test',          m17_callsign_test)
 test('M17 Meta Text Unit Test',         m17_metatext_test)
+test('P25 Loopback Unit Test', p25_loopback_test)
 test('Codeplug Test',         cps_test)
 ## test('Linux InputStream Test', linux_inputStream_test)
 test('minmea conversion Test', minmea_conversion_test)
