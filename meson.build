@@ -502,7 +502,7 @@ mduv3x0_inc = ['platform/targets/MD-UV3x0']
 mduv3x0_def =  {'PLATFORM_MDUV3x0': '', 'timegm': 'mktime'}
 
 mduv3x0_src += openrtx_src + ['openrtx/src/core/arm_math.c'] + imbe_vocoder_src + p25_src + p25_src_com + p25_audio_src + stm32f405_src + ui_src_default + mdx_src
-mduv3x0_inc += openrtx_inc + imbe_vocoder_inc + stm32f405_inc
+mduv3x0_inc += openrtx_inc + imbe_vocoder_inc + stm32f405_inc + ['openrtx/include/protocols', 'openrtx/include/core']
 mduv3x0_def += openrtx_def + {'CONFIG_P25': ''} + stm32f405_def
 
 ##
