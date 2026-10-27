@@ -17,7 +17,7 @@
 #include <utility>
 
 #include <state.h>
-#include <DSTAR/RingBuffer.h>
+#include <P25/vendor/RingBuffer.h>
 #include <P25/P25_IO.hpp>
 #include <imbe_audio_codec.h>
 
@@ -78,6 +78,9 @@ static FILE *dumpFile = NULL;
 static void pumpLoopback(P25_IO &io)
 {
     uint16_t sample;
+
+    if (dumpFile == NULL && getenv("P25_TXWIRE") != NULL)
+        dumpFile = std::fopen(getenv("P25_TXWIRE"), "wb");
 
     while (p25_txBuffer.getData() > 0U) {
         p25_txBuffer.get(sample);
@@ -245,8 +248,8 @@ TEST_CASE("P25 full-chain loopback recovers voice frames bit-exactly",
 
     P25_IO io;
     io.init_tx();
-    io.setSrcId(0x0BAD); /* source radio id 2989 */
-    io.setDstId(1U);     /* talkgroup 1 */
+    io.setSrcId(1234567U); /* source radio id (decodeLDU1 requires >= 1e6) */
+    io.setDstId(1U);       /* talkgroup 1 */
     io.writeSyncFrames();
     pumpLoopback(io);
     io.createTxHeader();
@@ -339,11 +342,16 @@ TEST_CASE("P25 full-chain loopback recovers voice frames bit-exactly",
         audioOut.insert(audioOut.end(), pcmOut, pcmOut + 160U);
     }
 
-    std::snprintf(path, sizeof(path), "%s/p25_loopback_out.raw", assetDir());
-    FILE *of = std::fopen(path, "wb");
-    if (of != NULL) {
-        std::fwrite(audioOut.data(), sizeof(int16_t), audioOut.size(), of);
-        std::fclose(of);
+    /* Write the decoded audio for auditioning only when asked for, so a
+     * plain test run does not leave artifacts inside the source tree. */
+    if (getenv("P25_RXOUT") != NULL) {
+        std::snprintf(path, sizeof(path), "%s/p25_loopback_out.raw",
+                      assetDir());
+        FILE *of = std::fopen(path, "wb");
+        if (of != NULL) {
+            std::fwrite(audioOut.data(), sizeof(int16_t), audioOut.size(), of);
+            std::fclose(of);
+        }
     }
 
     if (dumpFile != NULL) {
