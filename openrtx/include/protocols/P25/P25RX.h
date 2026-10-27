@@ -23,7 +23,7 @@
 #define P25RX_H
 
 #define ARM_MATH_CM4
-#include <DSTAR/arm_math.h>
+#include <P25/vendor/arm_math.h>
 #include <P25/P25Defines.h>
 
 enum P25RX_STATE { P25RXS_NONE, P25RXS_HDR, P25RXS_LDU };
@@ -39,6 +39,21 @@ public:
     bool isValid();
 
     bool m_synced;
+
+    /* Bring-up diagnostics: expose the internal demodulator state. */
+    P25RX_STATE getState() const
+    {
+        return m_state;
+    }
+
+    /* Lattice-phase tracking: mod-P25_RADIO_SYMBOL_LENGTH phase of the
+       last accepted sync, plus the best off-phase candidate seen in the
+       current sync window (adopted only with a decisive corr margin). */
+    uint8_t m_lockedPhase;
+    q31_t m_altCorr;
+    uint16_t m_altDataPtr;
+    uint16_t m_altStartPtr;
+    bool m_altValid;
 
 private:
     P25RX_STATE m_state;

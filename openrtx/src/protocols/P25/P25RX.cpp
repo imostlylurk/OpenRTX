@@ -19,10 +19,10 @@
  *   (2025) Modified by KD0OSS for P25 on Module17/OpenRTX
  */
 #include <P25/P25RX.h>
-#include <DSTAR/Utils.h>
 //#include <drivers/USART3_MOD17.h> // used for debugging
 #include <stdio.h>
-#include <DSTAR/RingBuffer.h>
+#include <P25/vendor/RingBuffer.h>
+#include <P25/vendor/Utils.h>
 //#include <drivers/usb_vcom.h>
 
 const q15_t SCALING_FACTOR = 18750;        // Q15(0.57)
@@ -100,6 +100,11 @@ void CP25RX::reset()
     m_rssiCount = 0U;
     m_duid = 0U;
     m_synced = false;
+    m_lockedPhase = 0U;
+    m_altCorr = 0;
+    m_altDataPtr = 0U;
+    m_altStartPtr = 0U;
+    m_altValid = false;
     validData = false;
 }
 
@@ -223,6 +228,13 @@ void CP25RX::processHdr(q15_t sample)
             case P25_DUID_LDU1:
             case P25_DUID_LDU2:
                 m_state = P25RXS_LDU;
+                // Late entry: if the HDU was missed (RX keyed up after
+                // TX start, or the keyup transient ate it), unmute on
+                // the first LDU instead - factory radios behave the
+                // same way.  NAC screening still happens downstream:
+                // decodeNID() in P25_IO::decode() rejects foreign NACs
+                // before any audio is produced.
+                validData = true;
                 //		vcom_writeBlock((void*)"LDU\n", 4);
                 break;
             case P25_DUID_PDU: {
@@ -310,6 +322,23 @@ void CP25RX::processLdu(q15_t sample)
     }
 
     if (m_dataPtr == m_lduEndPtr) {
+        /*
+         * Lattice-phase arbitration: the tracking search only accepts
+         * syncs at the previously locked phase, so noise can no longer
+         * flap the payload lattice by +/-1 sample between LDUs (each
+         * flap cost one whole LDU to ISI).  An off-phase candidate
+         * takes over only with a decisive 25% correlation margin,
+         * which also covers slow real clock drift.
+         */
+        if (m_altValid
+            && (m_maxCorr == 0 || m_altCorr > m_maxCorr + (m_maxCorr >> 2))) {
+            m_lduSyncPtr = m_altDataPtr;
+            m_lduStartPtr = m_altStartPtr;
+            m_lockedPhase = m_altDataPtr % P25_RADIO_SYMBOL_LENGTH;
+        }
+        m_altValid = false;
+        m_altCorr = 0;
+
         // Only update the centre and threshold if they are from a good sync
         if (m_lostCount == MAX_SYNC_FRAMES) {
             m_minSyncPtr = m_lduSyncPtr + P25_LDU_FRAME_LENGTH_SAMPLES - 5U;
@@ -362,6 +391,7 @@ bool CP25RX::correlateSync()
         q31_t corr = 0;
         q15_t min = 16000;
         q15_t max = -16000;
+        q31_t weightSq = 0;
 
         for (uint8_t i = 0U; i < P25_SYNC_LENGTH_SYMBOLS; i++) {
             q15_t val = m_buffer[ptr];
@@ -374,15 +404,19 @@ bool CP25RX::correlateSync()
             switch (P25_SYNC_SYMBOLS_VALUES[i]) {
                 case +3:
                     corr -= (val + val + val);
+                    weightSq += 9;
                     break;
                 case +1:
                     corr -= val;
+                    weightSq += 1;
                     break;
                 case -1:
                     corr += val;
+                    weightSq += 1;
                     break;
                 default: // -3
                     corr += (val + val + val);
+                    weightSq += 9;
                     break;
             }
 
@@ -395,8 +429,14 @@ bool CP25RX::correlateSync()
             if (m_averagePtr == NOAVEPTR) {
                 m_centreVal = (max + min) >> 1;
 
-                q31_t v1 = (max - m_centreVal) * SCALING_FACTOR;
-                m_thresholdVal = q15_t(v1 >> 15);
+                /* Weak/strong boundary at 2u, derived from the matched
+                   correlation (corr ~= u * sum(w^2)): min/max half-range
+                   lets noise peaks push the threshold past every real
+                   symbol. */
+                q31_t thr = (2 * corr) / weightSq;
+                if (thr > 16000)
+                    thr = 16000;
+                m_thresholdVal = q15_t(thr);
             }
 
             uint16_t startPtr = m_dataPtr + P25_LDU_FRAME_LENGTH_SAMPLES
@@ -419,9 +459,25 @@ bool CP25RX::correlateSync()
             for (uint8_t i = 0U; i < P25_SYNC_BYTES_LENGTH; i++)
                 errs += countBits8(sync[i] ^ P25_SYNC_BYTES[i]);
 
+            if (errs <= maxErrs && m_state != P25RXS_NONE
+                && (m_dataPtr % P25_RADIO_SYMBOL_LENGTH) != m_lockedPhase) {
+                /* Tracking: an off-lattice candidate only records itself;
+                   it is considered at the end of the sync window. */
+                if (corr > m_altCorr) {
+                    m_altCorr = corr;
+                    m_altDataPtr = m_dataPtr;
+                    m_altStartPtr = startPtr;
+                    m_altValid = true;
+                }
+                return false;
+            }
+
             if (errs <= maxErrs) {
                 m_maxCorr = corr;
                 m_lostCount = MAX_SYNC_FRAMES;
+                m_lockedPhase = m_dataPtr % P25_RADIO_SYMBOL_LENGTH;
+                m_altValid = false;
+                m_altCorr = 0;
 
                 m_lduSyncPtr = m_dataPtr;
 

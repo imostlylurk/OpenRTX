@@ -277,6 +277,15 @@ bool CRS241213::decode(unsigned char *data)
         return false;
     }
 
+    //A legit error location must fall inside the 24 hex symbols of the
+    //24,12,13 codeword (12 data + 12 parity; HB is sized 24).  Anything
+    //beyond that means the codeword is beyond repair and the "roots"
+    //are garbage - writing them would index out of bounds.
+    for (i = 0; i < count; i++) {
+        if (locn[i] >= 24U)
+            return false;
+    }
+
     //compute err+eras evaluator poly omega(x)
     // = s(x)*lambda(x) (modulo x**nroots). in index form. Also find deg(omega).
     DegOmega = 0;
