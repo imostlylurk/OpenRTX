@@ -7,7 +7,7 @@
  * plain C so it builds on every target; semantics follow CMSIS-DSP.
  */
 #include <string.h>
-#include <DSTAR/arm_math.h>
+#include <P25/vendor/arm_math.h>
 
 void arm_fir_fast_q15(const arm_fir_instance_q15 *S, q15_t *pSrc, q15_t *pDst,
                       uint32_t blockSize)

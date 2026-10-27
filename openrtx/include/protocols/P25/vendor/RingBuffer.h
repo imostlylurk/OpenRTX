@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Templated single-producer/single-consumer ring buffer, API-compatible
- * with the out-of-tree DSTAR code the P25 stack expects (MMDVM lineage).
+ * with the MMDVM-lineage ring buffer the P25 stack expects.
  */
-#ifndef DSTAR_RINGBUFFER_H
-#define DSTAR_RINGBUFFER_H
+#ifndef P25_VENDOR_RINGBUFFER_H
+#define P25_VENDOR_RINGBUFFER_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -89,4 +89,4 @@ private:
     volatile size_t m_tail;
 };
 
-#endif /* DSTAR_RINGBUFFER_H */
+#endif /* P25_VENDOR_RINGBUFFER_H */

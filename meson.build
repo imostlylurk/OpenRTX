@@ -86,8 +86,7 @@ ui_src_module17 = ['openrtx/src/ui/module17/ui.c',
 
 p25_src     = ['openrtx/src/rtx/OpMode_P25.cpp']
 p25_src_com = ['openrtx/src/protocols/P25/P25RX.cpp',
-              'openrtx/src/protocols/DSTAR/Utils.cpp',
-              'openrtx/src/protocols/P25/P25TX.cpp',
+                            'openrtx/src/protocols/P25/P25TX.cpp',
               'openrtx/src/protocols/P25/P25_IO.cpp',
               'openrtx/src/protocols/P25/AMBEFEC.cpp',
               'openrtx/src/protocols/P25/RS241213.cpp',
@@ -413,7 +412,7 @@ linux_def = {'PLATFORM_LINUX': '', 'VP_USE_FILESYSTEM':''}
 
 sdl_dep     = dependency('SDL2',     required: false)
 threads_dep = dependency('threads',  required: false)
-linux_src  += openrtx_src + ['openrtx/src/core/arm_math.c'] + imbe_vocoder_src + p25_src + p25_src_com + p25_audio_src
+linux_src  += openrtx_src + ['openrtx/src/protocols/P25/arm_math.c'] + imbe_vocoder_src + p25_src + p25_src_com + p25_audio_src
 linux_inc  += openrtx_inc + imbe_vocoder_inc + ['openrtx/include/protocols', 'openrtx/include/core']
 linux_def  += openrtx_def + {'CONFIG_P25': ''}
 linux_def  += {'sniprintf':'snprintf', 'vsniprintf':'vsnprintf'}
@@ -501,7 +500,7 @@ mduv3x0_src = ['platform/drivers/CPS/cps_io_native_MDUV3x0.c',
 mduv3x0_inc = ['platform/targets/MD-UV3x0']
 mduv3x0_def =  {'PLATFORM_MDUV3x0': '', 'timegm': 'mktime'}
 
-mduv3x0_src += openrtx_src + ['openrtx/src/core/arm_math.c'] + imbe_vocoder_src + p25_src + p25_src_com + p25_audio_src + stm32f405_src + ui_src_default + mdx_src
+mduv3x0_src += openrtx_src + ['openrtx/src/protocols/P25/arm_math.c'] + imbe_vocoder_src + p25_src + p25_src_com + p25_audio_src + stm32f405_src + ui_src_default + mdx_src
 mduv3x0_inc += openrtx_inc + imbe_vocoder_inc + stm32f405_inc + ['openrtx/include/protocols', 'openrtx/include/core']
 mduv3x0_def += openrtx_def + {'CONFIG_P25': ''} + stm32f405_def
 
@@ -607,7 +606,7 @@ cs7000_def += openrtx_def + stm32f405_def
 ## Connect Systems CS70000-PLUS
 ##
 cs7000p_src = ['platform/drivers/NVM/nvmem_CS7000.c',
-               'openrtx/src/core/arm_math.c',
+               'openrtx/src/protocols/P25/arm_math.c',
                'platform/drivers/NVM/W25Qx.c',
                'platform/drivers/NVM/eeep.c',
                'platform/drivers/baseband/HR_C6000.cpp',
@@ -1270,6 +1269,14 @@ p25_loopback_opts = unit_test_opts + {
 p25_loopback_test = executable('p25_loopback_test',
                                sources : unit_test_src + ['tests/unit/P25_loopback.cpp'],
                                kwargs  : p25_loopback_opts)
+
+p25_noise_sweep = executable('p25_noise_sweep',
+                             sources : unit_test_src + ['tests/unit/P25_noise_sweep.cpp'],
+                             kwargs  : p25_loopback_opts)
+
+p25_replay = executable('p25_replay',
+                        sources : unit_test_src + ['tests/unit/P25_replay.cpp'],
+                        kwargs  : p25_loopback_opts)
 
 minmea_conversion_test = executable('minmea_conversion_test',
                                      sources : unit_test_src + ['tests/unit/convert_minmea_coord.cpp'],
