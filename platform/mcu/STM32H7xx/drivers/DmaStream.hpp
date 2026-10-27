@@ -156,6 +156,23 @@ public:
     }
 
     /**
+     * Disable a stream from thread context, synchronously.
+     *
+     * halt() relies on a pended DMA IRQ to clear the EN bit; if that
+     * IRQ path stalls, the bit stays set and every restart fails with
+     * -EBUSY forever.  This clears EN directly under a short critical
+     * section so a wedged stream can always be recovered.
+     */
+    inline void forceDisable()
+    {
+        stopTransfer = true;
+        __disable_irq();
+        stream->CR &= ~DMA_SxCR_EN;
+        __DSB();
+        __enable_irq();
+    }
+
+    /**
      * Query che the current status of the stream.
      *
      * @return true if the stream is active, false otherwise.

@@ -230,6 +230,19 @@ void radio_setOpmode(const enum opmode mode)
             C6000.setModFactor(0x25);
             break;
 
+#ifdef CONFIG_P25
+        case OPMODE_P25:
+            C6000.fmMode();         // HR_C5000 in FM mode
+            C6000.setInputGain(+9); // Input gain in dB, as for M17
+            // Keep M17's deviation coefficient: 0x4A (2x) was verified on
+            // hardware to garble the C4FM waveform beyond factory decode
+            // (reg 0x35 is not linear in deviation); 0x25 decodes HDUs and
+            // holds LDU sync on a factory STP-404A. Deviation headroom, if
+            // ever needed, must come from elsewhere.
+            C6000.setModFactor(0x25);
+            break;
+#endif
+
         default:
             break;
     }
@@ -344,6 +357,13 @@ void radio_enableTx()
             C6000.disableTones();
             C6000.startAnalogTx(TxAudioSource::LINE_IN, FmConfig::BW_25kHz);
             break;
+
+#ifdef CONFIG_P25
+        case OPMODE_P25:
+            C6000.disableTones();
+            C6000.startAnalogTx(TxAudioSource::LINE_IN, FmConfig::BW_25kHz);
+            break;
+#endif
 
         default:
             break;
