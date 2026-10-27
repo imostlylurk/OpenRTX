@@ -22,8 +22,8 @@
 #define P25TX_H
 
 #define ARM_MATH_CM4
-#include <DSTAR/arm_math.h>
-#include <DSTAR/RingBuffer.h>
+#include <P25/vendor/arm_math.h>
+#include <P25/vendor/RingBuffer.h>
 
 class CP25TX
 {

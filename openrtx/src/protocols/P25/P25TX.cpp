@@ -57,7 +57,14 @@ extern bool p25_tx;
 extern bool p25_duplex;
 extern CRingBuffer<uint16_t> p25_txBuffer;
 
-static const uint16_t DC_OFFSET = 2048U;
+// Baseband scaling: the STM32 DAC driver converts int16 samples to
+// unsigned 12-bit values centred on 2048 (S16toU12), so the modulator
+// must emit plain signed samples with NO DC offset of its own.  The
+// scale factor is chosen so that a full (+3) symbol at the default TX
+// level reaches ~0.72x of the M17 DAC swing (P25 +/-1.8 kHz vs M17
+// +/-2.5 kHz symbol deviation on the same C6000 modulator path):
+// 1260 (symbol) * 0.446 (lowpass) * 0.625 (level 160) * 52 = ~18.3k.
+const uint16_t TX_SAMPLE_SCALE = 17U;
 
 CP25TX::CP25TX()
     : m_buffer(TX_BUFFER_LEN)
@@ -198,12 +205,15 @@ void CP25TX::writeByte(uint8_t c)
     ::arm_fir_fast_q15(&m_lpFilter, intBuffer, outBuffer,
                        P25_RADIO_SYMBOL_LENGTH * 4U);
 
-    for (uint8_t i = 0U; i < 20; i++) {
+    for (uint8_t i = 0; i < 20; i++) {
         q31_t res1 = outBuffer[i] * (m_txLevel * 128);
         q15_t res2 = q15_t(__SSAT((res1 >> 15), 16));
-        uint16_t res3 = uint16_t((res2 * 14) + DC_OFFSET);
+        // The shaped waveform peaks at ~3x the symbol-centre level on
+        // symbol transitions (RRC 0.2 overshoot): saturate instead of
+        // letting the uint16 store wrap, which would invert the peaks.
+        q15_t res3 = q15_t(__SSAT(res2 * TX_SAMPLE_SCALE, 16));
 
-        p25_txBuffer.put(res3);
+        p25_txBuffer.put(uint16_t(res3));
     }
 }
 
@@ -218,12 +228,13 @@ void CP25TX::writeSilence()
     ::arm_fir_fast_q15(&m_lpFilter, intBuffer, outBuffer,
                        P25_RADIO_SYMBOL_LENGTH * 4U);
 
-    for (uint8_t i = 0U; i < 20; i++) {
+    for (uint8_t i = 0; i < 20; i++) {
         q31_t res1 = outBuffer[i] * (m_txLevel * 128);
         q15_t res2 = q15_t(__SSAT((res1 >> 15), 16));
-        uint16_t res3 = uint16_t((res2 * 14) + DC_OFFSET);
+        // Saturate: see writeByte() for why the store must not wrap.
+        q15_t res3 = q15_t(__SSAT(res2 * TX_SAMPLE_SCALE, 16));
 
-        p25_txBuffer.put(res3);
+        p25_txBuffer.put(uint16_t(res3));
     }
 #ifndef TASK
     update_tx(20);
