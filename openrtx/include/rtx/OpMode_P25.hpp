@@ -28,7 +28,7 @@
 #include <string>
 
 /**
- * Specialisation of the OpMode class for the management of DSTAR operating mode.
+ * Specialisation of the OpMode class for the management of P25 operating mode.
  */
 class OpMode_P25 : public OpMode
 {

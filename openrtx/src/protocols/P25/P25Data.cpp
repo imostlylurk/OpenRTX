@@ -20,7 +20,6 @@
 #include <P25/P25Defines.h>
 #include <P25/P25Utils.h>
 #include <P25/Hamming.h>
-#include <DSTAR/Utils.h>
 //#include "Log.h"
 
 #include <cstdio>
@@ -105,9 +104,13 @@ bool CP25Data::decodeLDU1(const unsigned char *data)
     if (!ret)
         return false;
 
-    // Simple validation of the source id
+    // Simple validation of the source id.  The original MMDVM code
+    // required >= 1000000 (assuming 7-digit ham-style IDs), but P25
+    // unit IDs are plain 24-bit values and commercial fleets
+    // routinely use 6-digit IDs - reject only clearly bogus small
+    // values instead.
     unsigned int srcId = (rs[6U] << 16) + (rs[7U] << 8) + rs[8U];
-    if (srcId < 1000000U)
+    if (srcId < 100000U)
         return false;
 
     switch (rs[0U]) {

@@ -34,37 +34,45 @@ CP25NID::CP25NID(unsigned int nac)
     , m_termlc(NULL)
     , m_term(NULL)
 {
+    setNAC(nac);
+}
+
+void CP25NID::setNAC(unsigned int nac)
+{
     CBCH bch;
 
-    m_hdr = new unsigned char[P25_NID_LENGTH_BYTES];
+    if (m_hdr == NULL) {
+        m_hdr = new unsigned char[P25_NID_LENGTH_BYTES];
+        m_ldu1 = new unsigned char[P25_NID_LENGTH_BYTES];
+        m_ldu2 = new unsigned char[P25_NID_LENGTH_BYTES];
+        m_termlc = new unsigned char[P25_NID_LENGTH_BYTES];
+        m_term = new unsigned char[P25_NID_LENGTH_BYTES];
+    }
+
     m_hdr[0U] = (nac >> 4) & 0xFFU;
     m_hdr[1U] = (nac << 4) & 0xF0U;
     m_hdr[1U] |= P25_DUID_HEADER;
     bch.encode(m_hdr);
     m_hdr[7U] &= 0xFEU; // Clear the parity bit
 
-    m_ldu1 = new unsigned char[P25_NID_LENGTH_BYTES];
     m_ldu1[0U] = (nac >> 4) & 0xFFU;
     m_ldu1[1U] = (nac << 4) & 0xF0U;
     m_ldu1[1U] |= P25_DUID_LDU1;
     bch.encode(m_ldu1);
     m_ldu1[7U] |= 0x01U; // Set the parity bit
 
-    m_ldu2 = new unsigned char[P25_NID_LENGTH_BYTES];
     m_ldu2[0U] = (nac >> 4) & 0xFFU;
     m_ldu2[1U] = (nac << 4) & 0xF0U;
     m_ldu2[1U] |= P25_DUID_LDU2;
     bch.encode(m_ldu2);
     m_ldu2[7U] |= 0x01U; // Set the parity bit
 
-    m_termlc = new unsigned char[P25_NID_LENGTH_BYTES];
     m_termlc[0U] = (nac >> 4) & 0xFFU;
     m_termlc[1U] = (nac << 4) & 0xF0U;
     m_termlc[1U] |= P25_DUID_TERM_LC;
     bch.encode(m_termlc);
     m_termlc[7U] &= 0xFEU; // Clear the parity bit
 
-    m_term = new unsigned char[P25_NID_LENGTH_BYTES];
     m_term[0U] = (nac >> 4) & 0xFFU;
     m_term[1U] = (nac << 4) & 0xF0U;
     m_term[1U] |= P25_DUID_TERM;

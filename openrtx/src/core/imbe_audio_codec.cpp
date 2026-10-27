@@ -32,7 +32,7 @@
 #include <errno.h>
 #include <dsp.h>
 #include <cstdint>
-#include <DSTAR/RingBuffer.h>
+#include <P25/vendor/RingBuffer.h>
 #include <imbe_vocoder_api.h>
 
 static pathId audioPath;
@@ -177,6 +177,7 @@ static void *encodeFunc(void *arg)
     streamId iStream;
     pathId iPath = *((pathId *)arg);
     stream_sample_t audioBuf[320];
+    struct dcBlock encDcBlock;
 
     iStream = audioStream_start(iPath, audioBuf, 320, 8000,
                                 STREAM_INPUT | BUF_CIRC_DOUBLE);
@@ -185,6 +186,8 @@ static void *encodeFunc(void *arg)
         running = false;
         return NULL;
     }
+
+    dsp_resetState(encDcBlock);
 
     int byte_count = 0;
 #ifndef PLATFORM_MOD17
@@ -202,13 +205,29 @@ static void *encodeFunc(void *arg)
             break;
 
         dataBlock_t audio = inputStream_getData(iStream);
-        if (audio.data == NULL)
-            break;
+        if (audio.data == NULL) {
+            // Transient sync failure: keep running, real stream/path
+            // termination is detected at the top of the loop.  Breaking
+            // here would kill the encoder for the whole transmission and
+            // silently substitute the P25 silence frame for all audio.
+            continue;
+        }
 
 #ifndef PLATFORM_LINUX
-        // Pre-amplification stage
+        // Pre-amplification stage.  The ADC delivers samples with a DC
+        // pedestal (raw 12-bit data, 0..4095): remove it before applying
+        // the mic gain, as the M17 codec path does.  Without this, the
+        // overall x32 gain leaves a large DC residual (only a pedestal of
+        // exactly 2048 cancels modulo 65536) that buries speech at the
+        // vocoder input, making the transmitted audio near-silent.
+#ifndef PLATFORM_MOD17
+        for (size_t i = 0; i < audio.len; i++)
+            audio.data[i] = dsp_dcBlockFilter(&encDcBlock, audio.data[i])
+                          * micGainPre;
+#else
         for (size_t i = 0; i < audio.len; i++)
             audio.data[i] *= micGainPre;
+#endif
 #ifdef PLATFORM_MOD17
         if (cRxBuffer != NULL) {
             // Six header bytes
@@ -342,6 +361,15 @@ static void *decodeFunc(void *arg)
             for (int i = 0; i < 160; i++) {
 #ifdef PLATFORM_MOD17
                 pcm[i] *= 1.5F;
+#else
+                // Boost decoder output to match the M17 speaker level,
+                // which applies a x2 gain to the codec2 output.
+                int32_t amplified = pcm[i] * 2;
+                if (amplified > 32767)
+                    amplified = 32767;
+                if (amplified < -32768)
+                    amplified = -32768;
+                pcm[i] = static_cast<int16_t>(amplified);
 #endif
                 siAudioBuf[frame++] = pcm[i] & 0x00ff;
                 siAudioBuf[frame++] = (pcm[i] >> 8) & 0xff;

@@ -30,7 +30,7 @@
 #include "rtx/rtx.h"
 #include <state.h>
 #include <settings.h>
-#include <DSTAR/RingBuffer.h>
+#include <P25/vendor/RingBuffer.h>
 //#include <drivers/usb_vcom.h>
 
 #ifdef PLATFORM_MOD17
@@ -159,6 +159,8 @@ void OpMode_P25::update(rtxStatus_t *const status, const bool newCfg)
     invertTxPhase = false;
     invertRxPhase = false;
 #endif
+
+    // Bring-up diagnostics for the P25 screen
 
     // Main FSM logic
     switch (status->opStatus) {
@@ -323,6 +325,7 @@ void OpMode_P25::txState(rtxStatus_t *const status)
         p25_io.start_tx(invertTxPhase);
         p25_io.setSrcId(state.settings.p25_srcId);
         p25_io.setDstId(state.settings.p25_dstId);
+        p25_io.setNac(state.settings.p25_nac);
         p25_io.writeSyncFrames();
         //	p25_io.writeSyncFrames();
         p25_io.createTxHeader();
@@ -363,8 +366,14 @@ void OpMode_P25::txState(rtxStatus_t *const status)
     if (delay >= 4) {
         delay = 0;
         end_tx = false;
-        p25_io.createTxLDU1();
-        p25_io.createTxLDU2();
+        // Flush at most one LDU pair if real audio is still pending;
+        // do not pad with silence frames - a trailing pair of silent
+        // LDUs after every transmission shows up as an audible tail
+        // on receiving radios.
+        if (p25PacketBuffer.getData() >= 99) {
+            p25_io.createTxLDU1();
+            p25_io.createTxLDU2();
+        }
         p25_io.createTxTerminator();
         sleepFor(0, 20);
         txing = false;

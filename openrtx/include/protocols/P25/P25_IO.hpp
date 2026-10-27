@@ -44,7 +44,7 @@
 #include "P25TX.h"
 
 #define ARM_MATH_CM4
-#include <DSTAR/arm_math.h>
+#include <P25/vendor/arm_math.h>
 
 void update_tx(uint16_t length);
 
@@ -93,11 +93,21 @@ public:
     void writeSyncFrames();
     unsigned int getSrcId();
     unsigned int getDstId();
+    uint8_t getLcf()
+    {
+        return m_rfData.getLCF();
+    }
     void setSrcId(unsigned int id);
     void setDstId(unsigned int id);
+    void setNac(unsigned int nac);
     bool startThread(const bool invertP, void *(*func)(void *));
     void stopThread();
     void setTxLevel(uint8_t level);
+
+    uint16_t getRxLduCount() const
+    {
+        return m_rxLduCount;
+    }
 
 private:
     std::unique_ptr<int16_t[]>
@@ -116,6 +126,10 @@ private:
     uint32_t m_dstId;
     uint8_t m_rxLevel;
     uint8_t m_txLevel;
+
+    // Bring-up diagnostics counters
+    uint16_t m_bsFail;
+    uint16_t m_rxLduCount;
 
     bool dac_running;
     pthread_t dacThread;

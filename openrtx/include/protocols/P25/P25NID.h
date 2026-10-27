@@ -25,6 +25,8 @@ public:
     CP25NID(unsigned int nac);
     ~CP25NID();
 
+    void setNAC(unsigned int nac);
+
     bool decode(const unsigned char *data);
 
     unsigned char getDUID() const;

@@ -20,7 +20,7 @@
 //#ifdef CONFIG_P25
 
 #include <P25/P25_IO.hpp>
-#include <DSTAR/RingBuffer.h>
+#include <P25/vendor/RingBuffer.h>
 #include <interfaces/platform.h>
 #include <interfaces/delays.h>
 #include <audio_stream.h>
@@ -84,8 +84,9 @@ unsigned int m_txFrames = 0;
 unsigned int m_txBits = 0;
 unsigned int m_txErrs = 0;
 unsigned char m_lastDUID = P25_DUID_TERM;
+static bool m_lastNidValid = false; // last frame's NID passed BCH validation
 unsigned int m_nac = 0x293;
-unsigned int nac = 0x293; // temporary setting
+unsigned int nac = 0x293;           // temporary setting
 
 CRingBuffer<uint16_t> p25_txBuffer(TX_RINGBUFFER_SIZE);
 CRingBuffer<uint16_t> p25_rxBuffer(RX_RINGBUFFER_SIZE);
@@ -116,6 +117,8 @@ P25_IO::P25_IO()
     , m_nid(nac)
     , m_regen(true)
     , rx_started(false)
+    , m_bsFail(0)
+    , m_rxLduCount(0)
 {
     ::memset(m_boxcar5State, 0x00U, 30U * sizeof(q15_t));
     m_boxcar5Filter.numTaps = BOXCAR5_FILTER_LEN;
@@ -147,6 +150,7 @@ void P25_IO::reset()
         state.settings.p25_tx_level = 160;
     m_rxLevel = state.settings.p25_rx_level;
     setTxLevel(state.settings.p25_tx_level);
+    setNac(state.settings.p25_nac);
     dsp_resetState(dcrState);
 }
 
@@ -165,9 +169,18 @@ void P25_IO::terminate()
 void P25_IO::startBasebandSampling()
 {
     basebandPath = audioPath_request(SOURCE_RTX, SINK_MCU, PRIO_RX);
-    basebandId = audioStream_start(basebandPath, baseband_rxbuffer.get(),
-                                   2 * 1800, P25_RX_SAMPLE_RATE,
-                                   STREAM_INPUT | BUF_CIRC_DOUBLE);
+    for (uint8_t attempt = 0U; attempt < 3U; attempt++) {
+        basebandId = audioStream_start(basebandPath, baseband_rxbuffer.get(),
+                                       2 * 1800, P25_RX_SAMPLE_RATE,
+                                       STREAM_INPUT | BUF_CIRC_DOUBLE);
+        if (basebandId >= 0)
+            return;
+
+        // Start refused: the driver's force-recovery needs a moment to
+        // tear the stale stream down before a retry can succeed.
+        m_bsFail++;
+        sleepFor(0, 20);
+    }
 }
 
 void P25_IO::stopBasebandSampling()
@@ -376,6 +389,7 @@ unsigned char P25_IO::decodeNID(unsigned char *data)
 {
     // Decode the NID
     bool valid = m_nid.decode(data);
+    m_lastNidValid = valid;
 
     unsigned char duid = m_nid.getDUID();
     if (!valid) {
@@ -406,8 +420,10 @@ void P25_IO::decode()
     for (int i = 0; i < (int)P25_LDU_FRAME_LENGTH_BYTES; i++) {
         p25LDUBuffer.get(buffer[i]);
     }
-    if (buf[0] == 0x01)
+    if (buf[0] == 0x01) {
+        m_rxLduCount++;
         decodeLDUAudio(buffer);
+    }
 }
 
 void P25_IO::decodeLDUAudio(unsigned char *buffer)
@@ -417,6 +433,24 @@ void P25_IO::decodeLDUAudio(unsigned char *buffer)
     m_lastDUID = decodeNID(buffer);
     if (m_lastDUID <= 0)
         return;
+
+    /*
+     * Frames whose NID did not validate (BCH check failed - e.g. the
+     * misaligned first frame after a mid-stream acquisition, or the
+     * torn tail of a transmission) are sequenced by guessing the DUID
+     * above, but their payload cannot be trusted: feeding it to the
+     * vocoder yields a harsh noise burst.  Feed silence instead until
+     * a frame with a valid NID arrives.
+     */
+    if (!m_lastNidValid) {
+        static const unsigned char silence[11] = { 0x04U, 0x0CU, 0xFDU, 0x7BU,
+                                                   0xFBU, 0x7DU, 0xF2U, 0x7BU,
+                                                   0x3DU, 0x9EU, 0x45U };
+        for (int p = 0; p < 9; p++)
+            for (int i = 0; i < 11; i++)
+                p25PacketBuffer.put(silence[i]);
+        return;
+    }
 
     if (m_lastDUID == P25_DUID_LDU1) // && !rx_started)
     {
@@ -509,10 +543,10 @@ void P25_IO::createTxHeader()
         //	m_rfData.setMI(mi);
         //	m_rfData.setAlgId(algId);
         //	m_rfData.setKId(kId);
-        if (m_rfData.getDstId() > 0 && m_rfData.getDstId() <= 65535)
-            m_rfData.setLCF(0);
-        else
-            m_rfData.setLCF(3);
+        // Always announce a GROUP voice call (LCF 0x00): an individual
+        // call to a talkgroup ID is announced by factory radios as
+        // "IND CALL" and their call screening leaves the audio muted.
+        m_rfData.setLCF(P25_LCF_GROUP);
         //	m_rfData.setMFId(mfId);
 
         // Add the NID
@@ -774,6 +808,11 @@ void P25_IO::setSrcId(unsigned int id)
 void P25_IO::setDstId(unsigned int id)
 {
     m_rfData.setDstId(id);
+}
+
+void P25_IO::setNac(unsigned int nac)
+{
+    m_nid.setNAC(nac & 0xFFFU);
 }
 
 void P25_IO::setTxData(uint8_t *data, uint8_t len)
