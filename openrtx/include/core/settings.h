@@ -90,7 +90,7 @@ static const settings_t default_settings =
     "OpenRTX"                     // Default M17 meta text
 #ifdef CONFIG_P25
   ,100                          // Default P25 RX BB level
-  ,160                          // Default P25 TX BB level
+  ,180                          // Default P25 TX BB level (0.95x spec deviation)
   ,0                            // Empty P25 Source ID
   ,0                            // Empty P25 Destination ID
   ,293                          // Default P25 NAC

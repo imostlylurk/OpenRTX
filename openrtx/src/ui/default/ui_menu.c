@@ -1387,6 +1387,12 @@ bool _ui_drawMacroMenu(ui_state_t* ui_state)
             gfx_print(pos_2, layout.top_font, TEXT_ALIGN_CENTER, color_white, "          M17");
             break;
 #endif
+#if defined(CONFIG_P25)
+        case OPMODE_P25:
+            gfx_print(pos_2, layout.top_font, TEXT_ALIGN_CENTER, color_white,
+                      "          P25");
+            break;
+#endif
     }
 
     gfx_print(pos_2, layout.top_font, TEXT_ALIGN_CENTER,

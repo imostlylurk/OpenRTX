@@ -57,6 +57,7 @@ typedef struct
 #if defined(CONFIG_P25)
     uint32_t P25_SrcId;                /**< P25 Source ID (DMR ID)     */
     uint32_t P25_DstId;                /**< P25 Destination ID (DMR ID/TG) */
+    // Bring-up diagnostics (written by OpMode_P25 each update tick)
 #endif
 }
 rtxStatus_t;

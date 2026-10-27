@@ -90,11 +90,11 @@ enum settingsItems
     S_GPS,
 #endif
     S_RADIO,
-#ifdef CONFIG_M17
-    S_M17,
 #if defined(CONFIG_P25)
     S_P25,
 #endif
+#ifdef CONFIG_M17
+    S_M17,
 #endif
     S_FM,
     S_ACCESSIBILITY,

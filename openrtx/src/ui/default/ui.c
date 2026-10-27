@@ -198,7 +198,7 @@ const char *p25_items[] =
 {
     "DMR Id",
     "Dst Id",
-    "NAC",
+    "NAC (dec)",
     "RX Level",
     "TX Level",
     "RX Invert",
@@ -1204,6 +1204,30 @@ static void _ui_textInputKeypad(char *buf, uint8_t max_len, kbd_msg_t msg,
 static void _ui_textInputConfirm(char *buf)
 {
     buf[ui_state.input_position + 1] = '\0';
+}
+
+/*
+ * Numeric-only text entry for ID/NAC fields: every keypad press enters
+ * its digit directly - no multi-tap letters, no alpha characters.
+ */
+static void _ui_textInputNumber(char *buf, uint8_t max_len, kbd_msg_t msg)
+{
+    // input_getPressedChar() returns the key index 0-9, which is the
+    // digit itself - the E.161 symbol map mixes letters around the
+    // digit, so index into it would be wrong.
+    uint8_t num_key = input_getPressedChar(msg);
+    if (num_key > 9U)
+        return;
+
+    if (ui_state.input_position >= (max_len - 1))
+        return;
+
+    buf[ui_state.input_position] = '0' + num_key;
+    ui_state.input_position += 1;
+    buf[ui_state.input_position] = '\0';
+    ui_state.last_keypress = getTick();
+    ui_state.input_number = num_key;
+    ui_state.input_set = 0;
 }
 
 static void _ui_textInputDel(char *buf)
@@ -2505,6 +2529,8 @@ void ui_updateFSM(bool *sync_rtx)
                         {
                             _ui_textInputConfirm(ui_state.new_callsign);
                             // Save selected srcid and disable input mode
+                            // (entry length 8 digits: P25 src is a full
+                            // 24-bit field, unlike the 16-bit group dst)
                             state.settings.p25_srcId = atoi(ui_state.new_callsign);
                             ui_state.edit_srcid = false;
                         }
@@ -2517,7 +2543,7 @@ void ui_updateFSM(bool *sync_rtx)
                         }
                         else if(input_isCharPressed(msg))
                         {
-                        	_ui_textInputKeypad(ui_state.new_callsign, 7, msg, false);
+                        	_ui_textInputNumber(ui_state.new_callsign, 9, msg);
                         }
                         else if (msg.long_press && (msg.keys & KEY_F1) && (state.settings.vpLevel > vpBeep))
                         {
@@ -2542,7 +2568,7 @@ void ui_updateFSM(bool *sync_rtx)
                         }
                         else if(input_isCharPressed(msg))
                         {
-                        	_ui_textInputKeypad(ui_state.new_callsign, 7, msg, false);
+                        	_ui_textInputNumber(ui_state.new_callsign, 7, msg);
                         }
                         else if (msg.long_press && (msg.keys & KEY_F1) && (state.settings.vpLevel > vpBeep))
                         {
@@ -2567,7 +2593,7 @@ void ui_updateFSM(bool *sync_rtx)
                         }
                         else if(input_isCharPressed(msg))
                         {
-                        	_ui_textInputKeypad(ui_state.new_callsign, 4, msg, false);
+                        	_ui_textInputNumber(ui_state.new_callsign, 4, msg);
                         }
                         else if (msg.long_press && (msg.keys & KEY_F1) && (state.settings.vpLevel > vpBeep))
                         {
