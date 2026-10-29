@@ -160,14 +160,25 @@ public:
      *
      * halt() relies on a pended DMA IRQ to clear the EN bit; if that
      * IRQ path stalls, the bit stays set and every restart fails with
-     * -EBUSY forever.  This clears EN directly under a short critical
-     * section so a wedged stream can always be recovered.
+     * -EBUSY forever.  This clears EN directly so a wedged stream can
+     * always be recovered.
+     *
+     * Must leave the stream in a state a subsequent start() can safely
+     * reconfigure: NDTR/PAR/M0AR are write-protected while EN is set,
+     * so wait until the bit is actually cleared by hardware, and drop
+     * any IRQ pended by an earlier halt() together with its stop
+     * request - a late IRQ would otherwise run the stop callback
+     * against the stream that gets started next.
      */
     inline void forceDisable()
     {
-        stopTransfer = true;
+        stopTransfer = false;
         __disable_irq();
+        NVIC_ClearPendingIRQ(IRQn);
         stream->CR &= ~DMA_SxCR_EN;
+        unsigned int guard = 100000;
+        while(((stream->CR & DMA_SxCR_EN) != 0) && (--guard != 0))
+            ;
         __DSB();
         __enable_irq();
     }
