@@ -43,6 +43,13 @@ static bool running;
 static bool reqStop;
 static pthread_t codecThread;
 static pthread_attr_t codecAttr;
+/*
+ * Stream the codec thread is currently syncing on, published before the
+ * first sync so stopThread() can terminate it: a thread parked inside a
+ * stream sync never sees reqStop, and pthread_join() on it would park
+ * the caller too (deadlock at end of transmission).
+ */
+static volatile streamId codecStream = -1;
 static pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int16_t decodeTable[256];
 
@@ -186,6 +193,7 @@ static void *encodeFunc(void *arg)
         running = false;
         return NULL;
     }
+    codecStream = iStream;
 
     dsp_resetState(encDcBlock);
 
@@ -471,8 +479,20 @@ static bool startThread(const pathId path, void *(*func)(void *))
 static void stopThread()
 {
     reqStop = true;
+
+    /*
+     * Terminate the codec's stream BEFORE joining: a thread parked in a
+     * stream sync never observes reqStop, so the join would park the
+     * caller too, deadlocking the end of the transmission.  Terminating
+     * the stream makes its IRQ handler wake the parked thread, and the
+     * reqStop check at the top of the loop then ends it.
+     */
+    if (codecStream >= 0)
+        audioStream_terminate(codecStream);
+
     pthread_join(codecThread, NULL);
     running = false;
+    codecStream = -1;
 
 #ifdef __ZEPHYR__
     void *addr;

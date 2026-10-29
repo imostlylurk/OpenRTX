@@ -120,6 +120,17 @@ public:
 
         waiting = curThread;
 
+        /*
+         * A stream whose EN bit is already clear can never raise the
+         * interrupt this function waits for: report the dead stream to
+         * the caller instead of parking it forever.
+         */
+        if((stream->CR & DMA_SxCR_EN) == 0)
+        {
+            waiting = 0;
+            return false;
+        }
+
         do
         {
             Thread::IRQwait();
