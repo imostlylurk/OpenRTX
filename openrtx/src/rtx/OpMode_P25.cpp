@@ -171,11 +171,9 @@ void OpMode_P25::update(rtxStatus_t *const status, const bool newCfg)
         case RX:
             rxState(status);
             break;
-#ifdef PLATFORM_CS7000P
         case TX:
             txState(status);
             break;
-#endif
         default:
             break;
     }
