@@ -210,6 +210,10 @@ static void *encodeFunc(void *arg)
             // termination is detected at the top of the loop.  Breaking
             // here would kill the encoder for the whole transmission and
             // silently substitute the P25 silence frame for all audio.
+            // Yield regardless: this thread runs at high priority, and a
+            // stream that keeps returning NULL would otherwise starve
+            // every lower-priority task on the radio.
+            sleepFor(0, 5);
             continue;
         }
 

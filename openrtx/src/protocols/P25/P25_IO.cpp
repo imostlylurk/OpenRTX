@@ -233,8 +233,12 @@ bool P25_IO::start_tx(const bool invertP)
                                   P25_TX_SAMPLE_RATE,
                                   STREAM_OUTPUT | BUF_CIRC_DOUBLE);
 
-    if (outStream < 0)
+    if (outStream < 0) {
+        // Release the baseband path too, or the leaked open path blocks
+        // every later transmission attempt on this target.
+        audioPath_release(outPath);
         return false;
+    }
 
     idleBuffer = outputStream_getIdleBuffer(outStream);
 

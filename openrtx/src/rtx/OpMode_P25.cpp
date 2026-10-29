@@ -322,7 +322,20 @@ void OpMode_P25::txState(rtxStatus_t *const status)
         p25_tx = false;
         startTx = false;
         radio_enableTx();
-        p25_io.start_tx(invertTxPhase);
+        if (!p25_io.start_tx(invertTxPhase)) {
+            /*
+             * The baseband output stream could not be started: abort the
+             * transmission instead of keying a dead carrier until PTT is
+             * released.  Give the encoder path back; offState() disables
+             * the RF front-end on the next update.
+             */
+            imbe_stop(txAudioPath);
+            audioPath_release(txAudioPath);
+            txing = false;
+            p25_tx = false;
+            status->opStatus = OFF;
+            return;
+        }
         p25_io.setSrcId(state.settings.p25_srcId);
         p25_io.setDstId(state.settings.p25_dstId);
         p25_io.setNac(state.settings.p25_nac);
