@@ -21,6 +21,7 @@
  ***************************************************************************/
 
 #include <audio_stream.h>
+#include <core/diag.h>
 #include <imbe_audio_codec.h>
 #include <interfaces/delays.h>
 #include <pthread.h>
@@ -186,6 +187,7 @@ static void *encodeFunc(void *arg)
     stream_sample_t audioBuf[320];
     struct dcBlock encDcBlock;
 
+    diag_note("IMB:IN");
     iStream = audioStream_start(iPath, audioBuf, 320, 8000,
                                 STREAM_INPUT | BUF_CIRC_DOUBLE);
     if (iStream < 0) {
@@ -194,6 +196,7 @@ static void *encodeFunc(void *arg)
         return NULL;
     }
     codecStream = iStream;
+    diag_note("IMB:STRM-OK");
 
     dsp_resetState(encDcBlock);
 
@@ -265,6 +268,14 @@ static void *encodeFunc(void *arg)
                 cRxBuffer[byte_count++] = audio.data[i] * micGainPost;
                 if (byte_count == 160) {
                     encodeIMBE(cRxBuffer, imbe);
+                    {
+                        static bool firstFrame = true;
+                        if (firstFrame)
+                        {
+                            diag_note("IMB:FRAME1");
+                            firstFrame = false;
+                        }
+                    }
                     for (size_t j = 0; j < 11; j++)
                         p25PacketBuffer.put(imbe[j]);
                     byte_count = 0;
@@ -478,6 +489,7 @@ static bool startThread(const pathId path, void *(*func)(void *))
 
 static void stopThread()
 {
+    diag_note("IMB:STOP");
     reqStop = true;
 
     /*

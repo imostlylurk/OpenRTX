@@ -10,6 +10,7 @@
 #include "interfaces/radio.h"
 #include "protocols/M17/Datatypes.hpp"
 #include "rtx/OpMode_M17.hpp"
+#include <core/diag.h>
 #include "core/audio_codec.h"
 #include <errno.h>
 #include "core/gps.h"
@@ -335,11 +336,15 @@ void OpMode_M17::txState(rtxStatus_t *const status)
         encoder.reset();
         encoder.encodeLsf(lsf, m17Frame);
 
+        diag_note("M17:MICPATH");
         txAudioPath = audioPath_request(SOURCE_MIC, SINK_MCU, PRIO_TX);
+        diag_note("M17:CS");
         codec_startEncode(txAudioPath);
+        diag_note("M17:RADIOTX");
         radio_enableTx();
 
         modulator.invertPhase(invertTxPhase);
+        diag_note("M17:MOD");
         modulator.start();
         modulator.sendPreamble();
         modulator.sendFrame(m17Frame);
@@ -348,6 +353,14 @@ void OpMode_M17::txState(rtxStatus_t *const status)
     bool      lastFrame = false;
 
     // Wait until there are 16 bytes of compressed speech, then send them
+    {
+        static bool firstPop = true;
+        if (firstPop)
+        {
+            diag_note("M17:POP");
+            firstPop = false;
+        }
+    }
     codec_popFrame(dataFrame.data(),     true);
     codec_popFrame(dataFrame.data() + 8, true);
 

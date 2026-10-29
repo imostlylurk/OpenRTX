@@ -33,7 +33,8 @@ openrtx_def += {'FONT_UBUNTU_REGULAR': ''}
 ## OpenRTX core sources
 ##
 
-openrtx_src = ['openrtx/src/core/state.c',
+openrtx_src = ['openrtx/src/core/diag.c',
+           'openrtx/src/core/state.c',
                'openrtx/src/core/threads.c',
                'openrtx/src/core/battery.c',
                'openrtx/src/core/graphics.c',

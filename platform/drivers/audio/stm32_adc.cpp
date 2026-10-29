@@ -5,6 +5,7 @@
  */
 
 #include <kernel/scheduler/scheduler.h>
+#include <core/diag.h>
 #include "core/cache_cortexMx.h"
 #include "interfaces/delays.h"
 #include "peripherals/gpio.h"
@@ -247,6 +248,7 @@ void stm32adc_terminate()
  */
 static void forceStopAdc(const uint8_t instance)
 {
+    diag_note("EVT:ADC-RECOV");
     ADC_TypeDef *adc = periph[instance].adc;
 
 #ifdef STM32H743xx

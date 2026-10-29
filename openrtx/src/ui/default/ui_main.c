@@ -13,6 +13,7 @@
 #include <string.h>
 #include "ui/ui_strings.h"
 #include "core/utils.h"
+#include <core/diag.h>
 #include "ui/utils.h"
 
 void _ui_drawMainBackground()
@@ -21,6 +22,22 @@ void _ui_drawMainBackground()
     gfx_drawHLine(layout.top_h, layout.hline_h, color_grey);
     // Print bottom bar line of 1 pixel height
     gfx_drawHLine(CONFIG_SCREEN_HEIGHT - layout.bottom_h - 1, layout.hline_h, color_grey);
+#if defined(PLATFORM_MDUV3x0)
+    /*
+     * Stage-trace diagnostics: show the last three recorded execution
+     * stages just above the bottom bar.  On a hang the display keeps
+     * the last rendered frame, so the bottom lines tell where the code
+     * stopped.  Diagnostic build only.
+     */
+    for(uint8_t i = 0; i < 3; i++)
+    {
+        const char *stage = diag_getStage(i);
+        if(stage == NULL)
+            break;
+        point_t pos = {0, CONFIG_SCREEN_HEIGHT - layout.bottom_h - 9 - (2 - i) * 8};
+        gfx_print(pos, FONT_SIZE_5PT, TEXT_ALIGN_LEFT, color_white, "%s", stage);
+    }
+#endif
 }
 
 void _ui_drawMainTop(ui_state_t * ui_state)

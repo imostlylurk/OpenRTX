@@ -5,6 +5,7 @@
  */
 
 #include <kernel/scheduler/scheduler.h>
+#include <core/diag.h>
 #include "core/cache_cortexMx.h"
 #include "peripherals/gpio.h"
 #include "core/data_conversion.h"
@@ -213,6 +214,7 @@ static int stm32dac_start(const uint8_t instance, const void *config,
      */
     if(chState[instance].stream.running())
     {
+        diag_note("EVT:DAC-RECOV");
         channels[instance].tim.stop();
         chState[instance].stream.forceDisable();
         if(chState[instance].ctx != NULL)

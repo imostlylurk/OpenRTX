@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <core/diag.h>
 #include <errno.h>
 #include "core/dsp.h"
 #include "hwconfig.h"
@@ -177,17 +178,24 @@ static void *encodeFunc(void *arg)
 
     // Allocate on the heap, as the stack isn't big enough for oversampling
     // above 2 or so.
+    diag_note("C2:IN");
     stream_sample_t *adcBuf = malloc(DMA_BUF_SAMPLES * CONFIG_MIC_OVERSAMPLE
                                      * sizeof(stream_sample_t));
     if (adcBuf == NULL)
+    {
+        diag_note("C2:MALLOC");
         goto exit;
+    }
 
     iStream = audioStream_start(iPath, adcBuf,
                                 DMA_BUF_SAMPLES * CONFIG_MIC_OVERSAMPLE,
                                 8000 * CONFIG_MIC_OVERSAMPLE,
                                 STREAM_INPUT | BUF_CIRC_DOUBLE);
     if (iStream < 0)
+    {
+        diag_note("C2:STRMFAIL");
         goto exit;
+    }
 
     dsp_resetState(dcBlock);
     dsp_resetState(decimator);
@@ -200,7 +208,10 @@ static void *encodeFunc(void *arg)
 
         dataBlock_t audio = inputStream_getData(iStream);
         if (audio.data == NULL || audio.len == 0)
+        {
+            diag_note("C2:NULLDATA");
             break;
+        }
 
         // Each inputStream_getData call returns exactly
         // CODEC2_FRAME_SAMPLES * CONFIG_MIC_OVERSAMPLE raw samples
@@ -226,6 +237,14 @@ static void *encodeFunc(void *arg)
         uint64_t frame = 0;
         codec2_encode(codec2, ((uint8_t *)&frame), audio.data);
 
+        {
+            static bool firstFrame = true;
+            if (firstFrame)
+            {
+                diag_note("C2:FRAME1");
+                firstFrame = false;
+            }
+        }
         pthread_mutex_lock(&data_mutex);
 
         // If buffer is full erase the oldest frame

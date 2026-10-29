@@ -5,6 +5,7 @@
  */
 
 #include "interfaces/delays.h"
+#include <core/diag.h>
 #include "interfaces/nvmem.h"
 #include "interfaces/radio.h"
 #include "peripherals/gpio.h"
@@ -189,6 +190,7 @@ void radio_enableRx()
 
 void radio_enableTx()
 {
+    diag_note("RF:TX-IN");
     if(config->txDisable == 1) return;
 
     gpio_clearPin(VHF_LNA_EN);

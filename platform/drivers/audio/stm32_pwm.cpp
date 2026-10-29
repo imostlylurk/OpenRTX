@@ -5,6 +5,7 @@
  */
 
 #include <kernel/scheduler/scheduler.h>
+#include <core/diag.h>
 #include "core/data_conversion.h"
 #include "DmaStream.hpp"
 #include "Timer.hpp"
@@ -87,7 +88,10 @@ static int stm32pwm_start(const uint8_t instance, const void *cfg,
      * fail every restart with -EBUSY until reboot.
      */
     if(stream.running())
+    {
+        diag_note("EVT:PWM-RECOV");
         stream.forceDisable();
+    }
 
     __disable_irq();
     ctx->running = 1;

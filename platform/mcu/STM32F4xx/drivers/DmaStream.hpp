@@ -127,6 +127,8 @@ public:
          */
         if((stream->CR & DMA_SxCR_EN) == 0)
         {
+            extern void diag_note(const char *);
+            diag_note("EVT:SYNCDEAD");
             waiting = 0;
             return false;
         }
@@ -183,6 +185,8 @@ public:
      */
     inline void forceDisable()
     {
+        extern void diag_note(const char *);
+        diag_note("EVT:FORCEDIS");
         stopTransfer = false;
         __disable_irq();
         NVIC_ClearPendingIRQ(IRQn);

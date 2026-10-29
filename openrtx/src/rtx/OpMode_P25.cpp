@@ -31,6 +31,7 @@
 #include <state.h>
 #include <settings.h>
 #include <P25/vendor/RingBuffer.h>
+#include <core/diag.h>
 //#include <drivers/usb_vcom.h>
 
 #ifdef PLATFORM_MOD17
@@ -314,12 +315,15 @@ void OpMode_P25::txState(rtxStatus_t *const status)
         end_tx = false;
         delay = 0;
         p25PacketBuffer.reset();
+        diag_note("P25:MICPATH");
         txAudioPath = audioPath_request(SOURCE_MIC, SINK_MCU, PRIO_TX);
+        diag_note("P25:ENCS");
         imbe_startEncode(txAudioPath);
         sleepFor(0, 100); // wait for some tx audio bytes
         txing = true;
         p25_tx = false;
         startTx = false;
+        diag_note("P25:RADIOTX");
         radio_enableTx();
         if (!p25_io.start_tx(invertTxPhase)) {
             /*
@@ -328,6 +332,7 @@ void OpMode_P25::txState(rtxStatus_t *const status)
              * released.  Give the encoder path back; offState() disables
              * the RF front-end on the next update.
              */
+            diag_note("P25:ABORT");
             imbe_stop(txAudioPath);
             audioPath_release(txAudioPath);
             txing = false;
@@ -338,9 +343,11 @@ void OpMode_P25::txState(rtxStatus_t *const status)
         p25_io.setSrcId(state.settings.p25_srcId);
         p25_io.setDstId(state.settings.p25_dstId);
         p25_io.setNac(state.settings.p25_nac);
+        diag_note("P25:SYNC");
         p25_io.writeSyncFrames();
         //	p25_io.writeSyncFrames();
         p25_io.createTxHeader();
+        diag_note("P25:HDR");
     }
 #ifdef PLATFORM_MOD17
     if (vcom_bytesReady() >= 17) {
@@ -355,6 +362,12 @@ void OpMode_P25::txState(rtxStatus_t *const status)
             if (p25PacketBuffer.getData()
                 >= 198) // wait for 360ms of encoded audio
             {
+                static bool firstLdu = true;
+                if (firstLdu)
+                {
+                    diag_note("P25:LDU1");
+                    firstLdu = false;
+                }
                 p25_io.createTxLDU1();
                 p25_io.createTxLDU2();
             } else
