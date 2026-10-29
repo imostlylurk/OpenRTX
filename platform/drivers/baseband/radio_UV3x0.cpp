@@ -118,6 +118,20 @@ void radio_setOpmode(const enum opmode mode)
             #endif
             break;
 
+        case OPMODE_P25:
+            /*
+             * Same 4FSK-over-LINE_IN scheme as M17: AT1846S with the RX
+             * filter bypassed, C6000 as the FM modulator fed by the PWM
+             * baseband stream.  Deviation and polarity calibration are
+             * left to the bench (TX level, C6000 0x35, phase invert
+             * settings).
+             */
+            at1846s.setOpMode(AT1846S_OpMode::DMR); // AT1846S in DMR mode, disables RX filter
+            at1846s.setBandwidth(AT1846S_BW::_25);  // Set bandwidth to 25kHz for proper deviation
+            C6000.fmMode();                         // HR_C6000 in FM mode
+            C6000.setInputGain(+6);                 // Input gain in dB, as M17
+            break;
+
         default:
             break;
     }
@@ -204,6 +218,10 @@ void radio_enableTx()
             break;
 
         case OPMODE_M17:
+            C6000.startAnalogTx(TxAudioSource::LINE_IN, FmConfig::BW_25kHz);
+            break;
+
+        case OPMODE_P25:
             C6000.startAnalogTx(TxAudioSource::LINE_IN, FmConfig::BW_25kHz);
             break;
 

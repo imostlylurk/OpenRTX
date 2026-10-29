@@ -304,7 +304,8 @@ void OpMode_P25::rxState(rtxStatus_t *const status)
 
 void OpMode_P25::txState(rtxStatus_t *const status)
 {
-#if !defined(PLATFORM_CS7000P) && !defined(PLATFORM_MD3x0)
+#if !defined(PLATFORM_CS7000P) && !defined(PLATFORM_MD3x0) \
+    && !defined(PLATFORM_MDUV3x0)
     if (!host_found) // receive only
     {
         sleepFor(0, 30);
