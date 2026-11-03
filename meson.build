@@ -131,6 +131,10 @@ else
   codec2_dep = codec2_proj.get_variable('codec2_dep')
 endif
 
+# IMBE vocoder for P25, fetched and built as a subproject like codec2
+imbe_vocoder_proj = subproject('imbe_vocoder')
+imbe_vocoder_dep  = imbe_vocoder_proj.get_variable('imbe_vocoder_dep')
+
 # Catch2, C++ testing framework (only for native/linux builds)
 if not meson.is_cross_build()
   catch2_dep = dependency('catch2-with-main', fallback: ['catch2', 'catch2_with_main_dep'])
