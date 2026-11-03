@@ -1244,6 +1244,26 @@ linux_inputStream_test = executable('linux_inputStream_test',
                                     sources : unit_test_src + ['tests/unit/linux_inputStream_test.cpp'],
                                     kwargs  : unit_test_opts)
 
+p25_o25_loopback_test = executable('p25_o25_loopback_test',
+                                   sources : unit_test_src + ['tests/unit/P25_o25_loopback.cpp'],
+                                   kwargs  : unit_test_opts)
+
+p25_o25_sweep = executable('p25_o25_sweep',
+                           sources : unit_test_src + ['tests/unit/P25_o25_sweep.cpp'],
+                           kwargs  : unit_test_opts)
+
+p25_o25_nid_test = executable('p25_o25_nid_test',
+                              sources : unit_test_src + ['tests/unit/P25_o25_nid.cpp'],
+                              kwargs  : unit_test_opts)
+
+p25_o25_framing_test = executable('p25_o25_framing_test',
+                                  sources : unit_test_src + ['tests/unit/P25_o25_framing.cpp'],
+                                  kwargs  : unit_test_opts)
+
+p25_o25_replay = executable('p25_o25_replay',
+                            sources : unit_test_src + ['tests/unit/P25_o25_replay.cpp'],
+                            kwargs  : unit_test_opts)
+
 minmea_conversion_test = executable('minmea_conversion_test',
                                      sources : unit_test_src + ['tests/unit/convert_minmea_coord.cpp'],
                                      kwargs  : unit_test_opts)
@@ -1295,6 +1315,9 @@ test('M17 Demodulator Test',  m17_demodulator_test)
 test('M17 RRC Test',          m17_rrc_test)
 test('M17 Callsign Unit Test',          m17_callsign_test)
 test('M17 Meta Text Unit Test',         m17_metatext_test)
+test('P25 o25 Modem Loopback Unit Test', p25_o25_loopback_test)
+test('P25 o25 NID Unit Test', p25_o25_nid_test)
+test('P25 o25 Framing Unit Test', p25_o25_framing_test)
 test('Codeplug Test',         cps_test)
 ## test('Linux InputStream Test', linux_inputStream_test)
 test('minmea conversion Test', minmea_conversion_test)
