@@ -53,6 +53,19 @@ typedef struct
     char     M17_link[10];             /**  M17 LSF traffic originator */
     char     M17_refl[10];             /**  M17 LSF reflector module   */
     char     M17_meta_text[53];        /**< M17 Meta Text              */
+
+#if defined(CONFIG_P25)
+    uint32_t P25_SrcId;                /**< P25 received call source ID    */
+    uint32_t P25_DstId;                /**< P25 received call destination  */
+    uint32_t p25SrcId;                 /**< P25 own ID (DMR ID)            */
+    uint32_t p25DstId;                 /**< P25 destination ID (talkgroup) */
+    uint16_t p25Nac;                   /**< P25 network access code        */
+    uint8_t  p25TxLevel;               /**< P25 TX baseband level          */
+    uint8_t  p25Preamble;              /**< P25 TX preamble option         */
+    uint8_t  p25TxInvert : 1,          /**< P25 invert TX baseband         */
+             p25RxInvert : 1,          /**< P25 invert RX baseband         */
+             p25DstCheck : 1;          /**< P25 play only calls to us      */
+#endif
 }
 rtxStatus_t;
 
@@ -73,7 +86,10 @@ enum opmode
     OPMODE_NONE = 0,        /**< No opMode selected */
     OPMODE_FM   = 1,        /**< Analog FM          */
     OPMODE_DMR  = 2,        /**< DMR                */
-    OPMODE_M17  = 3         /**< M17                */
+    OPMODE_M17  = 3,        /**< M17                */
+#ifdef CONFIG_P25
+    OPMODE_P25  = 4         /**< P25                */
+#endif
 };
 
 /**
