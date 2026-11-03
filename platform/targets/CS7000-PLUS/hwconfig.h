@@ -70,7 +70,7 @@ extern const struct gpsDevice gps;
 #define CONFIG_VIBRATION
 
 /* Microphone audio input */
-#define CONFIG_MIC_GAIN 32
+#define CONFIG_MIC_GAIN 48
 #define CONFIG_MIC_OVERSAMPLE 6
 
 #ifdef __cplusplus
