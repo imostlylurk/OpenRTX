@@ -85,6 +85,14 @@ p25_src_com = ['openrtx/src/protocols/P25/AMBEFEC.cpp',
                'openrtx/src/protocols/P25/Hamming.cpp',
                'openrtx/src/protocols/P25/Golay24128.cpp']
 
+# C4FM modem, IMBE codec glue
+p25_modem_src = ['openrtx/src/protocols/P25/modem/DSP.cpp',
+                 'openrtx/src/protocols/P25/modem/Modulator.cpp',
+                 'openrtx/src/protocols/P25/modem/Demodulator.cpp',
+                 'openrtx/src/protocols/P25/modem/Vocoder.cpp',
+                 'openrtx/src/protocols/P25/modem/Nid.cpp',
+                 'openrtx/src/protocols/P25/modem/AudioCodec.cpp']
+
 ##
 ## OpenRTX UI sources
 ##
@@ -387,9 +395,9 @@ linux_def = {'PLATFORM_LINUX': '', 'VP_USE_FILESYSTEM':''}
 
 sdl_dep     = dependency('SDL2',     required: false)
 threads_dep = dependency('threads',  required: false)
-linux_src  += openrtx_src + p25_src_com
+linux_src  += openrtx_src + p25_src_com + p25_modem_src
 linux_inc  += openrtx_inc
-linux_def  += openrtx_def
+linux_def  += openrtx_def + {'CONFIG_P25': ''}
 linux_def  += {'sniprintf':'snprintf', 'vsniprintf':'vsnprintf'}
 
 #
@@ -787,7 +795,7 @@ endforeach
 linux_opts = {
   'sources'            : linux_default_src,
   'include_directories': linux_inc,
-  'dependencies'       : [sdl_dep, threads_dep, codec2_dep],
+  'dependencies'       : [sdl_dep, threads_dep, codec2_dep, imbe_vocoder_dep],
   'c_args'             : linux_c_args,
   'cpp_args'           : linux_cpp_args,
   'link_args'          : linux_l_args
@@ -796,7 +804,7 @@ linux_opts = {
 linux_small_opts = {
     'sources'            : linux_default_src,
     'include_directories': linux_inc,
-    'dependencies'       : [sdl_dep, threads_dep, codec2_dep],
+    'dependencies'       : [sdl_dep, threads_dep, codec2_dep, imbe_vocoder_dep],
     'c_args'             : linux_small_c_args,
     'cpp_args'           : linux_small_cpp_args,
     'link_args'          : linux_l_args
@@ -805,7 +813,7 @@ linux_small_opts = {
 linux_mod17_opts = {
     'sources'            : linux_mod17_src,
     'include_directories': linux_inc,
-    'dependencies'       : [sdl_dep, threads_dep, codec2_dep],
+    'dependencies'       : [sdl_dep, threads_dep, codec2_dep, imbe_vocoder_dep],
     'c_args'             : linux_mod17_c_args,
     'cpp_args'           : linux_mod17_cpp_args,
     'link_args'          : linux_l_args
@@ -1195,7 +1203,7 @@ linux = alias_target('linux', linux_targets)
 unit_test_opts = {'c_args'             : linux_c_args,
                   'cpp_args'           : linux_cpp_args,
                   'include_directories': linux_inc,
-                  'dependencies'       : [sdl_dep, threads_dep, codec2_dep, catch2_dep],
+                  'dependencies'       : [sdl_dep, threads_dep, codec2_dep, catch2_dep, imbe_vocoder_dep],
                   'link_args'          : linux_l_args}
 
 unit_test_src = linux_src + ui_src_default
