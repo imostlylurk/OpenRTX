@@ -72,6 +72,20 @@ openrtx_src = ['openrtx/src/core/state.c',
 openrtx_inc = ['openrtx/include', 'platform']
 
 ##
+## P25 (TIA-102 Phase 1) sources
+##
+
+# Link control, low speed data and FEC (Golay, Hamming, Reed-Solomon)
+p25_src_com = ['openrtx/src/protocols/P25/AMBEFEC.cpp',
+               'openrtx/src/protocols/P25/RS241213.cpp',
+               'openrtx/src/protocols/P25/P25Utils.cpp',
+               'openrtx/src/protocols/P25/P25LowSpeedData.cpp',
+               'openrtx/src/protocols/P25/P25Data.cpp',
+               'openrtx/src/protocols/P25/P25_Audio.cpp',
+               'openrtx/src/protocols/P25/Hamming.cpp',
+               'openrtx/src/protocols/P25/Golay24128.cpp']
+
+##
 ## OpenRTX UI sources
 ##
 
@@ -373,7 +387,7 @@ linux_def = {'PLATFORM_LINUX': '', 'VP_USE_FILESYSTEM':''}
 
 sdl_dep     = dependency('SDL2',     required: false)
 threads_dep = dependency('threads',  required: false)
-linux_src  += openrtx_src
+linux_src  += openrtx_src + p25_src_com
 linux_inc  += openrtx_inc
 linux_def  += openrtx_def
 linux_def  += {'sniprintf':'snprintf', 'vsniprintf':'vsnprintf'}
