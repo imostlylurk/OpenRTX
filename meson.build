@@ -85,6 +85,9 @@ p25_src_com = ['openrtx/src/protocols/P25/AMBEFEC.cpp',
                'openrtx/src/protocols/P25/Hamming.cpp',
                'openrtx/src/protocols/P25/Golay24128.cpp']
 
+# Operating mode
+p25_src = ['openrtx/src/rtx/OpMode_P25.cpp']
+
 # C4FM modem, IMBE codec glue
 p25_modem_src = ['openrtx/src/protocols/P25/modem/DSP.cpp',
                  'openrtx/src/protocols/P25/modem/Modulator.cpp',
@@ -395,7 +398,7 @@ linux_def = {'PLATFORM_LINUX': '', 'VP_USE_FILESYSTEM':''}
 
 sdl_dep     = dependency('SDL2',     required: false)
 threads_dep = dependency('threads',  required: false)
-linux_src  += openrtx_src + p25_src_com + p25_modem_src
+linux_src  += openrtx_src + p25_src + p25_src_com + p25_modem_src
 linux_inc  += openrtx_inc
 linux_def  += openrtx_def + {'CONFIG_P25': ''}
 linux_def  += {'sniprintf':'snprintf', 'vsniprintf':'vsnprintf'}
