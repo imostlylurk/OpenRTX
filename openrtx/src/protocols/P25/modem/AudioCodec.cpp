@@ -38,7 +38,7 @@ constexpr size_t DMA_BUF_SAMPLES = FRAME_SAMPLES * 2; // Double-buffered DMA
  * Queue depth: an LDU carries nine frames (180 ms), the operating mode
  * drains or fills it one LDU at a time.
  */
-constexpr size_t QUEUE_SIZE = 24;
+constexpr size_t QUEUE_SIZE = AudioCodec::QUEUE_DEPTH;
 
 struct ImbeFrame {
     uint8_t bytes[AudioCodec::FRAME_BYTES];
@@ -346,6 +346,14 @@ void AudioCodec::stop(const pathId path)
 bool AudioCodec::running()
 {
     return isRunning;
+}
+
+bool AudioCodec::queueEmpty(const pathId path)
+{
+    if ((isRunning == false) || (audioPath != path))
+        return true;
+
+    return numElements == 0;
 }
 
 int AudioCodec::popFrame(uint8_t *frame, const bool blocking)

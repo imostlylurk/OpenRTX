@@ -194,6 +194,9 @@ void OpMode_P25::rxState(rtxStatus_t *const status)
 
     // Lock acquired: start from a clean link control.
     if (lock && (locked == false)) {
+        // A new transmission opens its own audio path: end a held one
+        stopRxAudio();
+
         rxData.reset();
         callForUs = false;
     }
@@ -203,10 +206,14 @@ void OpMode_P25::rxState(rtxStatus_t *const status)
     if (newUnit)
         handleUnit(status);
 
-    // Lock lost, for whatever cause: close the audio and invalidate the call
-    // data.
+    // Lock lost, for whatever cause: invalidate the call data. Keep the
+    // codec and the speaker path until the queued audio played out,
+    // unless leaving RX: the last frames of the transmission are usually
+    // still in the queue when the lock drops.
     if (locked == false) {
-        stopRxAudio();
+        if ((status->opStatus != RX) || AudioCodec::queueEmpty(rxAudioPath))
+            stopRxAudio();
+
         dataValid = false;
         status->lsfOk = false;
     }

@@ -28,6 +28,7 @@ class AudioCodec
 {
 public:
     static constexpr size_t FRAME_BYTES = 11; ///< One 88-bit IMBE frame
+    static constexpr size_t QUEUE_DEPTH = 24; ///< Frames the queue holds
 
     /**
      * Initialise the codec, to be called before any other function.
@@ -66,6 +67,15 @@ public:
      * @return true if the codec thread is running.
      */
     static bool running();
+
+    /**
+     * Check if the codec has no frames queued for a given audio path.
+     *
+     * @param path: audio path on which the operation was started.
+     * @return true if the codec is not running on that path or its queue
+     *         is empty.
+     */
+    static bool queueEmpty(const pathId path);
 
     /**
      * Get an encoded IMBE frame.
