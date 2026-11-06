@@ -145,7 +145,17 @@ private:
      * outer symbol level (0.93x spec deviation on the CS7000P LINE_IN /
      * HR_C6000 path).
      */
+#if defined(PLATFORM_MD3x0) || defined(PLATFORM_MDUV3x0)
+    // The PWM baseband sink radiates ~7.1 counts/Hz (MD-UV390 IQ captures,
+    // Nov 2026: 16640 counts measured +-2344 Hz, agreeing with the older
+    // level-180 capture at 17280 counts and +-2400 Hz), against 8.9
+    // counts/Hz on the CS7000 DAC path the 96-count step was calibrated
+    // on. The chain also saturates near +-2300 Hz, so keep the symbol
+    // levels below the ceiling: 1800 Hz * 7.1 / 166 ~ 77.
+    static constexpr float LEVEL_COUNTS_PER_STEP = 77.0f;
+#else
     static constexpr float LEVEL_COUNTS_PER_STEP = 96.0f;
+#endif
 
     /// Receive any NAC when the NAC setting is this value.
     static constexpr uint16_t NAC_ANY = 0xF7E;
