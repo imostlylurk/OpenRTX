@@ -29,6 +29,11 @@ namespace
 
 constexpr size_t IMBE_PER_LDU = 9;
 
+/// Voice frames of an LDU whose FEC needed more than this many bit
+/// corrections are muted as erased: they decode to loud noise. A clean
+/// unit typically needs a handful; a faded one hundreds.
+constexpr unsigned int VOICE_ERASURE_THRESHOLD = 20;
+
 /*
  * Status symbols, one dibit every 70 bits of a unit: a subscriber unit
  * sends them as "unknown, talk-around".
@@ -247,8 +252,10 @@ void OpMode_P25::handleUnit(rtxStatus_t *const status)
         case Nid::DUID_LDU1:
         case Nid::DUID_LDU2: {
             // Working copy: the FEC repair modifies the unit in place.
+            // The return value counts the voice bits the FEC had to
+            // change: a quality metric for the frames below.
             memcpy(txUnit, unit.data(), 216);
-            audio.process(txUnit);
+            const unsigned int voiceErrs = audio.process(txUnit);
 
             if (duid == Nid::DUID_LDU1) {
                 // The link control carries the call's addresses: the
@@ -283,9 +290,22 @@ void OpMode_P25::handleUnit(rtxStatus_t *const status)
                     AudioCodec::startDecode(rxAudioPath);
 
                 uint8_t imbe[AudioCodec::FRAME_BYTES];
-                for (unsigned n = 0; n < IMBE_PER_LDU; n++) {
-                    audio.decode(txUnit, imbe, n);
-                    AudioCodec::pushFrame(imbe, false);
+                if (voiceErrs <= VOICE_ERASURE_THRESHOLD) {
+                    for (unsigned n = 0; n < IMBE_PER_LDU; n++) {
+                        audio.decode(txUnit, imbe, n);
+                        AudioCodec::pushFrame(imbe, false);
+                    }
+                } else {
+                    // Frame erasure: a unit whose voice FEC needed this
+                    // many corrections decodes to loud garbage. Mute it
+                    // with silence frames, keeping the queue fed so the
+                    // playback timing is unaffected.
+                    static const uint8_t quiet[AudioCodec::FRAME_BYTES] = {
+                        0x04, 0x0C, 0xFD, 0x7B, 0xFB, 0x7D,
+                        0xF2, 0x7B, 0x3D, 0x9E, 0x45
+                    };
+                    for (unsigned n = 0; n < IMBE_PER_LDU; n++)
+                        AudioCodec::pushFrame(quiet, false);
                 }
             }
         } break;
