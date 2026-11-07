@@ -497,8 +497,8 @@ int _ui_getP25ValueName(char *buf, uint8_t max_len, uint8_t index)
             return 0;
         case M_P25PREAMBLE: {
             static const char *const names[P25_PREAMBLE_NUM] = {
-                "TIA 180ms", "MMDVM",   "KDW 144",
-                "KDW 255",   "SWP 144", "SWP 255",
+                "EFJ 120ms", "EFJ 213ms", "KDW 120ms",
+                "KDW 213ms", "TIA 120ms", "TIA 213ms",
             };
             uint8_t option = last_state.settings.p25_preamble;
             if (option >= P25_PREAMBLE_NUM)

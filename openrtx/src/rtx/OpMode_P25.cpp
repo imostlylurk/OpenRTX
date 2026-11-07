@@ -440,13 +440,11 @@ void OpMode_P25::txState(rtxStatus_t *const status)
         if (preamble >= P25_PREAMBLE_NUM)
             preamble = P25_PREAMBLE_KENWOOD_SHORT;
         switch (preamble) {
-            case P25_PREAMBLE_TIA180:
-                modulator.sendPreamble(Modulator::PREAMBLE_TIA, 2,
-                                       FRAME_SYMBOLS);
+            case P25_PREAMBLE_EFJ_SHORT:
+                modulator.sendPreamble(Modulator::PREAMBLE_EFJ, 1, 144 * 4);
                 break;
-            case P25_PREAMBLE_MMDVM:
-                modulator.sendPreamble(Modulator::PREAMBLE_MMDVM, 2,
-                                       FRAME_SYMBOLS);
+            case P25_PREAMBLE_EFJ_LONG:
+                modulator.sendPreamble(Modulator::PREAMBLE_EFJ, 1, 255 * 4);
                 break;
             case P25_PREAMBLE_KENWOOD_SHORT:
                 modulator.sendPreamble(Modulator::PREAMBLE_KENWOOD, 4, 144 * 4);
@@ -454,11 +452,11 @@ void OpMode_P25::txState(rtxStatus_t *const status)
             case P25_PREAMBLE_KENWOOD_LONG:
                 modulator.sendPreamble(Modulator::PREAMBLE_KENWOOD, 4, 255 * 4);
                 break;
-            case P25_PREAMBLE_SWEEP_SHORT:
-                modulator.sendPreamble(Modulator::PREAMBLE_SWEEP, 4, 144 * 4);
+            case P25_PREAMBLE_TIA_SHORT:
+                modulator.sendPreamble(Modulator::PREAMBLE_TIA, 2, 144 * 4);
                 break;
-            case P25_PREAMBLE_SWEEP_LONG:
-                modulator.sendPreamble(Modulator::PREAMBLE_SWEEP, 4, 255 * 4);
+            case P25_PREAMBLE_TIA_LONG:
+                modulator.sendPreamble(Modulator::PREAMBLE_TIA, 2, 255 * 4);
                 break;
         }
 

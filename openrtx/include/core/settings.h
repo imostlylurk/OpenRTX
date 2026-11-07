@@ -61,17 +61,23 @@ typedef struct {
 } __attribute__((packed)) settings_t;
 
 #ifdef CONFIG_P25
-// P25 TX preamble options: field-test/bring-up aid. The Kenwood options
-// are an official fielded configuration (+3,+3,-3,-3, 144 or 255
-// repetitions), TIA is the alternating +-3 preamble, MMDVM the repeated
-// 0x77 octets and the sweep visits all four levels.
+// P25 TX preamble options: field-test/bring-up aid, short/long variants of
+// three patterns at equal duration (short = 576 symbols = 120 ms, long =
+// 1020 symbols = 212.5 ms). EFJ is the unmodulated carrier a factory EF
+// Johnson subscriber transmits (measured off air, spectrum-verified, 2026-11
+// bench captures); Kenwood is the official fielded +3,+3,-3,-3 square wave;
+// TIA is the alternating +-3 preamble. Stale settings blobs remap in place
+// (old TIA/MMDVM values become the EFJ options, old sweep values the TIA
+// options); Kenwood keeps its slots and stays the default: zero-mean and
+// clock-rich, between the EFJ's no-deviation carrier and the TIA all-outer
+// alternating pattern.
 enum p25_preamble_t {
-    P25_PREAMBLE_TIA180 = 0,
-    P25_PREAMBLE_MMDVM,
+    P25_PREAMBLE_EFJ_SHORT = 0,
+    P25_PREAMBLE_EFJ_LONG,
     P25_PREAMBLE_KENWOOD_SHORT,
     P25_PREAMBLE_KENWOOD_LONG,
-    P25_PREAMBLE_SWEEP_SHORT,
-    P25_PREAMBLE_SWEEP_LONG,
+    P25_PREAMBLE_TIA_SHORT,
+    P25_PREAMBLE_TIA_LONG,
     P25_PREAMBLE_NUM
 };
 #endif

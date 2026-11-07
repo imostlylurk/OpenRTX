@@ -93,10 +93,9 @@ bool Modulator::start()
     return true;
 }
 
+constexpr int8_t Modulator::PREAMBLE_EFJ[1];
 constexpr int8_t Modulator::PREAMBLE_TIA[2];
-constexpr int8_t Modulator::PREAMBLE_MMDVM[2];
 constexpr int8_t Modulator::PREAMBLE_KENWOOD[4];
-constexpr int8_t Modulator::PREAMBLE_SWEEP[4];
 
 void Modulator::sendPreamble(const int8_t *pattern, const size_t patternLen,
                              const size_t symbolCount)

@@ -61,15 +61,15 @@ public:
     bool start();
 
     /**
-     * Transmission preamble patterns. All are zero-mean; TIA is the
-     * alternating +3/-3 preamble, MMDVM the repeated 0x77 octets (+1/-3),
-     * Kenwood the official +3,+3,-3,-3 square wave and the sweep visits
-     * all four symbol levels.
+     * Transmission preamble patterns. EFJ is the unmodulated carrier (level
+     * 0, zero deviation) a factory EF Johnson subscriber transmits before
+     * the frame sync - measured off air, spectrum-verified. Kenwood is the
+     * official +3,+3,-3,-3 square wave, TIA the alternating +3/-3 preamble.
+     * All are zero-mean.
      */
+    static constexpr int8_t PREAMBLE_EFJ[1] = { 0 };
     static constexpr int8_t PREAMBLE_TIA[2] = { +3, -3 };
-    static constexpr int8_t PREAMBLE_MMDVM[2] = { +1, -3 };
     static constexpr int8_t PREAMBLE_KENWOOD[4] = { +3, +3, -3, -3 };
-    static constexpr int8_t PREAMBLE_SWEEP[4] = { +3, +1, -1, -3 };
 
     /**
      * Send a transmission preamble made of symbolCount symbols from the
