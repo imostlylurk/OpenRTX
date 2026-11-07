@@ -34,11 +34,10 @@ TEST_CASE("NID encode/decode round trip", "[p25][o25][nid]")
             uint8_t nid[8];
             Nid::encode(nac, duid, nid);
 
-            // Even parity over the 64 bits
-            int ones = 0;
-            for (int i = 0; i < 8; i++)
-                ones += __builtin_popcount(nid[i]);
-            CHECK((ones & 1) == 0);
+            // TIA-102.BAAC DUID parity: set on the voice units only
+            const bool want = (duid == Nid::DUID_LDU1
+                               || duid == Nid::DUID_LDU2);
+            CHECK(((nid[7] & 0x01) != 0) == want);
 
             uint16_t rnac = 0xFFFF;
             uint8_t rduid = 0xFF;
@@ -76,6 +75,35 @@ TEST_CASE("NID codeword matches the reference BCH encoder", "[p25][o25][nid]")
         for (int i = 0; i < 7; i++)
             CHECK(nid[i] == g.bytes[i]);
         CHECK((nid[7] & 0xFE) == g.bytes[7]);
+    }
+}
+
+TEST_CASE("NID matches off-air factory transmitters", "[p25][o25][nid]")
+{
+    /*
+     * Captured off air from a factory EF Johnson subscriber on NAC $293
+     * (bench captures of 2026-11-06; 59/59 frames pass OP25's strict
+     * DUID/parity validation). Byte-exact including the parity bit: the
+     * BCH part agrees with the G4KLX/MMDVM vectors above, the parity bit
+     * follows the TIA DUID class.
+     */
+    struct Golden {
+        uint8_t duid;
+        uint8_t bytes[8];
+    };
+    static const Golden golden[] = {
+        { Nid::DUID_HDU, { 0x29, 0x30, 0x0F, 0x3B, 0x5D, 0xF8, 0x01, 0xC2 } },
+        { Nid::DUID_LDU1, { 0x29, 0x35, 0x55, 0xEF, 0x2C, 0x65, 0x34, 0x37 } },
+        { Nid::DUID_LDU2, { 0x29, 0x3A, 0xBA, 0x93, 0xBE, 0xC2, 0x6A, 0x2B } },
+        { Nid::DUID_TDU, { 0x29, 0x33, 0x39, 0x77, 0x72, 0x8C, 0xED, 0x6E } },
+    };
+
+    for (const auto &g : golden) {
+        uint8_t nid[8];
+        Nid::encode(0x293, g.duid, nid);
+        INFO("duid " << (int)g.duid);
+        for (int i = 0; i < 8; i++)
+            CHECK(nid[i] == g.bytes[i]);
     }
 }
 

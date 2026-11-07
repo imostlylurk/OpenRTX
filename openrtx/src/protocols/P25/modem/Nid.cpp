@@ -114,15 +114,21 @@ void Nid::encode(const uint16_t nac, const uint8_t duid, uint8_t *out)
     uint64_t code = poly | rem;
 
     memset(out, 0x00, BYTES);
-    unsigned ones = 0;
     for (unsigned degree = 0; degree < N; degree++) {
         bool bit = (code >> degree) & 1;
         setBit(out, bitOfDegree(degree), bit);
-        ones += bit ? 1 : 0;
     }
 
-    // Even parity over the 64 bits
-    setBit(out, 63, (ones & 1) != 0);
+    /*
+     * Parity bit (NID bit 63) is defined per data unit class by TIA-102.BAAC:
+     * set on the voice units (LDU1, LDU2), clear on the others. It is NOT a
+     * parity of the codeword bits - verified off air against a factory
+     * transmitter (EF Johnson, 2026-11-06 bench captures): the factory words
+     * mix even and odd ones-counts at parity 0. OP25's framer enforces this
+     * rule and silently drops voice NIDs that carry 0; dsd-fme and MMDVM
+     * ignore the bit.
+     */
+    setBit(out, 63, duid == DUID_LDU1 || duid == DUID_LDU2);
 }
 
 bool Nid::decode(const uint8_t *in, uint16_t &nac, uint8_t &duid)
