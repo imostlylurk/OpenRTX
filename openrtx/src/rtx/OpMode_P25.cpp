@@ -34,6 +34,16 @@ constexpr size_t IMBE_PER_LDU = 9;
 /// unit typically needs a handful; a faded one hundreds.
 constexpr unsigned int VOICE_ERASURE_THRESHOLD = 20;
 
+/// Erasure concealment: the last good frame is repeated with the
+/// output gain halved every frame, then silence. The ramp prevents the
+/// speaker pop of an abrupt cut and the synthesizer ring-up of a frozen
+/// frame played at full level.
+constexpr uint8_t ERASURE_GAIN[] = { 50, 25, 13, 6, 3 };
+constexpr size_t ERASURE_GAIN_N = 5;
+uint8_t lastGoodFrame[AudioCodec::FRAME_BYTES];
+bool lastGoodValid = false;
+size_t erasureStep = 0;
+
 /*
  * Status symbols, one dibit every 70 bits of a unit: a subscriber unit
  * sends them as "unknown, talk-around".
@@ -294,18 +304,34 @@ void OpMode_P25::handleUnit(rtxStatus_t *const status)
                     for (unsigned n = 0; n < IMBE_PER_LDU; n++) {
                         audio.decode(txUnit, imbe, n);
                         AudioCodec::pushFrame(imbe, false);
+                        if (n == IMBE_PER_LDU - 1) {
+                            memcpy(lastGoodFrame, imbe,
+                                   AudioCodec::FRAME_BYTES);
+                            lastGoodValid = true;
+                        }
                     }
+                    erasureStep = 0;
                 } else {
                     // Frame erasure: a unit whose voice FEC needed this
-                    // many corrections decodes to loud garbage. Mute it
-                    // with silence frames, keeping the queue fed so the
-                    // playback timing is unaffected.
+                    // many corrections decodes to loud garbage. Repeat
+                    // the last good frame with the gain halved every
+                    // frame - the ramp prevents both the pop of an
+                    // abrupt cut and the ring-up of a frozen frame -
+                    // then continue with silence frames, keeping the
+                    // queue fed so the playback timing is unaffected.
                     static const uint8_t quiet[AudioCodec::FRAME_BYTES] = {
                         0x04, 0x0C, 0xFD, 0x7B, 0xFB, 0x7D,
                         0xF2, 0x7B, 0x3D, 0x9E, 0x45
                     };
-                    for (unsigned n = 0; n < IMBE_PER_LDU; n++)
-                        AudioCodec::pushFrame(quiet, false);
+                    for (unsigned n = 0; n < IMBE_PER_LDU; n++) {
+                        if (lastGoodValid && erasureStep < ERASURE_GAIN_N) {
+                            AudioCodec::pushFrame(lastGoodFrame, false,
+                                                  ERASURE_GAIN[erasureStep]);
+                            erasureStep += 1;
+                        } else {
+                            AudioCodec::pushFrame(quiet, false);
+                        }
+                    }
                 }
             }
         } break;

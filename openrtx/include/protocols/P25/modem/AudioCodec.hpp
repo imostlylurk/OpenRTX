@@ -95,7 +95,14 @@ public:
      * @return 0 on success, -EAGAIN if the queue is full and not blocking,
      * -EPERM if the codec is not running.
      */
-    static int pushFrame(const uint8_t *frame, const bool blocking);
+    /**
+     * Get a compressed audio frame into the internal queue.
+     * The gain, in percent, scales the decoded audio: values below
+     * 100 fade the frame down without stopping the stream, which
+     * avoids speaker pops on erased frames.
+     */
+    static int pushFrame(const uint8_t *frame, const bool blocking,
+                         const uint8_t gainPercent = 100);
 };
 
 } /* P25 */

@@ -42,6 +42,7 @@ constexpr size_t QUEUE_SIZE = AudioCodec::QUEUE_DEPTH;
 
 struct ImbeFrame {
     uint8_t bytes[AudioCodec::FRAME_BYTES];
+    uint8_t gainPercent; ///< Output scaling of the decoded frame
 };
 
 pathId audioPath;
@@ -120,6 +121,7 @@ void *encodeFunc(void *arg)
 
         ImbeFrame frame;
         vocoder.encode(audio.data, frame.bytes);
+        frame.gainPercent = 100;
 
         pthread_mutex_lock(&data_mutex);
 
@@ -196,9 +198,14 @@ void *decodeFunc(void *arg)
         if (outBuf == NULL)
             break;
 
-        if (newData)
+        if (newData) {
             vocoder.decode(frame.bytes, outBuf);
-        else
+            if (frame.gainPercent != 100) {
+                for (size_t i = 0; i < FRAME_SAMPLES; i++)
+                    outBuf[i] = static_cast<stream_sample_t>(
+                        (outBuf[i] * frame.gainPercent) / 100);
+            }
+        } else
             memset(outBuf, 0x00, FRAME_SAMPLES * sizeof(int16_t));
 
         outputStream_sync(oStream, true);
@@ -384,13 +391,15 @@ int AudioCodec::popFrame(uint8_t *frame, const bool blocking)
     return 0;
 }
 
-int AudioCodec::pushFrame(const uint8_t *frame, const bool blocking)
+int AudioCodec::pushFrame(const uint8_t *frame, const bool blocking,
+                          const uint8_t gainPercent)
 {
     if (isRunning == false)
         return -EPERM;
 
     ImbeFrame element;
     memcpy(element.bytes, frame, FRAME_BYTES);
+    element.gainPercent = gainPercent;
 
     // No space available and non-blocking call: return
     if ((numElements >= QUEUE_SIZE) && (blocking == false))
