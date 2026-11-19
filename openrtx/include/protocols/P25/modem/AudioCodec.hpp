@@ -28,7 +28,12 @@ class AudioCodec
 {
 public:
     static constexpr size_t FRAME_BYTES = 11; ///< One 88-bit IMBE frame
-    static constexpr size_t QUEUE_DEPTH = 24; ///< Frames the queue holds
+    static constexpr size_t QUEUE_DEPTH = 10; ///< Frames the queue holds.
+    ///< The depth absorbs scheduling jitter between the 20 ms codec thread
+    ///< and the baseband-paced consumer, shared by both directions. Bench
+    ///< tuning on the CS7000 family found 9 the minimum clean value (4
+    ///< fails TX outright, 8 pops on RX); 10 keeps one frame of margin
+    ///< while holding a third less memory than 16.
 
     /**
      * Initialise the codec, to be called before any other function.
