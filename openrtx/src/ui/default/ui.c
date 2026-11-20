@@ -980,6 +980,8 @@ static void _ui_fsm_menuMacro(kbd_msg_t msg, bool *sync_rtx)
     {
 #ifdef CONFIG_KNOB_ABSOLUTE // If the radio has an absolute position knob
         state.settings.sqlLevel = platform_getChSelector() - 1;
+        if (state.settings.sqlLevel > SLEVEL_MAX)
+            state.settings.sqlLevel = SLEVEL_MAX;
 #endif                      // CONFIG_KNOB_ABSOLUTE
         if (state.settings.sqlLevel > 0) {
             state.settings.sqlLevel -= 1;
@@ -995,8 +997,14 @@ static void _ui_fsm_menuMacro(kbd_msg_t msg, bool *sync_rtx)
     {
 #ifdef CONFIG_KNOB_ABSOLUTE
         state.settings.sqlLevel = platform_getChSelector() - 1;
+        if (state.settings.sqlLevel > SLEVEL_MAX)
+            state.settings.sqlLevel = SLEVEL_MAX;
 #endif
-        if (state.settings.sqlLevel < 15) {
+        // Levels saved by older versions went up to 15
+        if (state.settings.sqlLevel > SLEVEL_MAX)
+            state.settings.sqlLevel = SLEVEL_MAX;
+
+        if (state.settings.sqlLevel < SLEVEL_MAX) {
             state.settings.sqlLevel += 1;
             *sync_rtx = true;
             vp_announceSquelch(state.settings.sqlLevel, queueFlags);

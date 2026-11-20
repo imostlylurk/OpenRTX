@@ -89,7 +89,7 @@ static const settings_t default_settings = {
 #else
     255, // Contrast
 #endif
-    4,         // Squelch level, 4 = S3
+    3,         // Squelch level, 3 = S3
     0,         // Vox level
     0,         // UTC Timezone
     false,     // GPS enabled
@@ -126,7 +126,6 @@ static const settings_t default_settings = {
     ,
     0   // Check P25 destination ID on RX
 #endif
-
 };
 
 #endif /* SETTINGS_H */
